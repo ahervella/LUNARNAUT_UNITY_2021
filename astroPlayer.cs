@@ -10,24 +10,24 @@ using LunarnautShit;
 public class astroPlayer : MonoBehaviour
 {
     const float MIN_MOVE_DIST = 0.001f;
-    const float SHELL_RADIUS = 0.01f;
+    const float SHELL_RADIUS = 0.5f;//0.01f;
     const float MIN_GROUND_DEG_ANG = 60f;
     float MIN_GROUND_NORM = Mathf.Sin(Mathf.Deg2Rad * MIN_GROUND_DEG_ANG);
 
-    const float SPEED = 0.05f;
-    const float MAX_SPEED = 0.1f;
-    const float GRAVITY = 0.05f;
-    const float TERMINAL_VEL = 0.1f;
+    const float SPEED = 10f;
+    const float MAX_SPEED = 10f;
+    const float GRAVITY = 3f;
+    const float TERMINAL_VEL = 5f;
 
     Rigidbody2D rb;
     Animator anim;
 
     public LunInput input;
 
-    Vector2 direction = new Vector2(0, 0);
-    Vector2 vel = new Vector2(0, 0);
-    Vector2 groundNorm = new Vector2(0, 0);
-    bool grounded = false;
+    public Vector2 direction = new Vector2(0, 0);
+    public Vector2 vel = new Vector2(0, 0);
+    public Vector2 groundNorm = new Vector2(0, 0);
+    public bool grounded = false;
 
     ContactFilter2D cf;
 
@@ -37,7 +37,7 @@ public class astroPlayer : MonoBehaviour
     RaycastHit2D[] hitBuffer = new RaycastHit2D[MAX_COLLISIONS];
     List<RaycastHit2D> hitBufferList = new List<RaycastHit2D>(MAX_COLLISIONS);
 
-   
+    public Vector2 savedHorzMove = new Vector2(0, 0);
 
     
     //Happens before onEnable, only once ever
@@ -80,10 +80,11 @@ public class astroPlayer : MonoBehaviour
         direction = input.AstroPlayer.move.ReadValue<Vector2>();
 
         //get new x and y velocity
-        float xVel = Mathf.Lerp(vel.x, direction.x, Time.fixedDeltaTime);
+        float xVel = direction.x * SPEED;//Mathf.Lerp(vel.x, direction.x * SPEED, Time.fixedDeltaTime);
+
         //makes sense to multiply by deltaTime here and later
         //because grav is acceleration
-        float yVel = vel.y + GRAVITY * Time.fixedDeltaTime;
+        float yVel = vel.y - GRAVITY * Time.fixedDeltaTime;
 
         //clamp limits
         xVel = Mathf.Clamp(xVel, -MAX_SPEED, MAX_SPEED);
@@ -91,11 +92,16 @@ public class astroPlayer : MonoBehaviour
 
         vel = new Vector2(xVel, yVel);
 
+        
+
+
         Vector2 deltaPos = vel * Time.fixedDeltaTime;
 
         Vector2 movePerp2Ground = new Vector2(groundNorm.y, -groundNorm.x);
 
         Vector2 move = movePerp2Ground * deltaPos.x;
+
+        
 
         //first move in parallel to ground (horizontal)
         moveRB(move, false);
@@ -117,12 +123,25 @@ public class astroPlayer : MonoBehaviour
         {
             //collisions info stored in hitBuffer variable
             //maxes out using variable array size
-            int collCount = rb.Cast(move, cf, hitBuffer, moveDist + SHELL_RADIUS);
+            int collCount = 0;
+            if (yMove)
+            {
+                collCount = rb.Cast(move, cf, hitBuffer, SHELL_RADIUS);
+            }
+
+            else
+            {
+                collCount = rb.Cast(move, cf, hitBuffer, moveDist);
+            }
+            
 
             hitBufferList.Clear();
 
             //not using linq shit here b/c accord. Microsoft:
             //"LINQ syntax is typically less efficient than a foreach loop."
+
+            grounded = false;
+
             for (int i = 0; i < collCount; i++)
             {
                 RaycastHit2D hb = hitBuffer[i];
@@ -145,20 +164,23 @@ public class astroPlayer : MonoBehaviour
                         //so they don't slide b/c it's considered ground
                         currNorm.x = 0;
                     }
+                    vel.y = 0;
                 }
 
 
-                float projMag = Vector2.Dot(vel, currNorm);
+                //float projMag = Vector2.Dot(vel, currNorm);
 
                 //if normal against velocity, then alter velocity
                 //to simulate a collision
+                /*
                 if (projMag < 0)
                 {
                     //apply to velocity for next frame
                     vel -= projMag * currNorm;
                 }
+                */
 
-                float newDist = hb.distance - SHELL_RADIUS;
+                float newDist = hb.distance;//- SHELL_RADIUS;
 
                 //as we're looping through collision ray casts,
                 //find the shortest distance of all the collisions
@@ -170,14 +192,22 @@ public class astroPlayer : MonoBehaviour
 
         }
 
+        if (!yMove)
+        {
+            savedHorzMove = move.normalized * moveDist;
+        }
+        else
+        {
+            rb.MovePosition(rb.position + (move.normalized * moveDist) + savedHorzMove);
+        }
         //advance position 
-        rb.MovePosition(rb.position + move.normalized * moveDist);
+        
     }
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        Debug.Log("touching!");
-        Debug.Log(col);
+        //Debug.Log("touching!");
+        //Debug.Log(col);
     }
 
     void processHazards()
