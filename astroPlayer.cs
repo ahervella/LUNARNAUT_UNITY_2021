@@ -11,15 +11,19 @@ public class astroPlayer : MonoBehaviour
 {
     const float MIN_MOVE_DIST = 0.001f;
     //if this is min dist too small, game can break
-    const float GROUNDED_MIN_DIST = 0.05f;
-    const float SHELL_RADIUS = GROUNDED_MIN_DIST * 10;
-    const float MIN_GROUND_DEG_ANG = 60f;
+    const float GROUNDED_MIN_DIST = 0.5f;
+    const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 10;
+    const float MIN_GROUND_DEG_ANG = 40f;
     float MIN_GROUND_NORM = Mathf.Sin(Mathf.Deg2Rad * MIN_GROUND_DEG_ANG);
+    const float SLIDE_FRIC_THRESHOLD = 0.008f;
 
     const float SPEED = 10f;
     const float MAX_SPEED = 10f;
     const float GRAVITY = 3f;
     const float TERMINAL_VEL = 5f;
+
+    const float JUMP_VERT_SPEED = 0.3f;
+    const float MAX_JUMP_TIME = 0.25f;
 
     Rigidbody2D rb;
     Animator anim;
@@ -30,6 +34,7 @@ public class astroPlayer : MonoBehaviour
     public Vector2 direction = new Vector2(0, 0);
     public bool jumping = false;
     public bool canJump = false;
+    public float jumpTimeCounter = 0f;
     public Vector2 vel = new Vector2(0, 0);
     public Vector2 velGrav = new Vector2(0, 0);
     public Vector2 velMove = new Vector2(0, 0);
@@ -41,10 +46,12 @@ public class astroPlayer : MonoBehaviour
     public float hbd = 0f;
     public float projMagnitude = 0f;
     public int collisionCount = 0;
+    public float slideVectorLength = 0f;
+    public Vector2 slideVect = Vector2.zero;
 
     ContactFilter2D cf;
 
-    //initialized with max number of collisions
+    //initialized with max number of collisions 
     //able to store per frame
     const int MAX_COLLISIONS = 16;
     //RaycastHit2D[] hitBuffer = new RaycastHit2D[MAX_COLLISIONS];
@@ -55,7 +62,7 @@ public class astroPlayer : MonoBehaviour
     public Vector2 savedHorzMove = new Vector2(0, 0);
 
     
-    //Happens before onEnable, only once ever
+    //Happens before onEnable, only once ever 
     void Awake()
     {
         input = new LunInput();
@@ -89,7 +96,7 @@ public class astroPlayer : MonoBehaviour
     void FixedUpdate()
     {
         //NOTE! : Time.deltaTime == Time.fixedDeltaTime when in FixedUpdate
-        //(I just tested this)
+        //(I just tested this) 
 
         direction = input.AstroPlayer.move.ReadValue<Vector2>();
 
@@ -102,10 +109,12 @@ public class astroPlayer : MonoBehaviour
         {
             jumping = true;
         }
-        else if (grounded)
+        else
         {
-            canJump = true;
+            canJump = grounded;
         }
+
+        if (grounded) { jumpTimeCounter = 0f; }
 
         
         //get new x and y velocity
@@ -121,23 +130,25 @@ public class astroPlayer : MonoBehaviour
         xVel = Mathf.Clamp(xVel, -MAX_SPEED, MAX_SPEED);
         yVel = Mathf.Clamp(yVel, -TERMINAL_VEL, TERMINAL_VEL);
 
-        if (jumping && canJump && grounded)
+        if (jumping && canJump)
         {
-            yVel += 10f;
-            canJump = false;
+            if (jumpTimeCounter <= MAX_JUMP_TIME)
+            {
+                jumpTimeCounter += Time.fixedDeltaTime;
+                yVel += JUMP_VERT_SPEED;
+            }
+
+            
         }
 
         vel = new Vector2(xVel, yVel);
 
-        
 
-        //get delta position for this frame (b/c vel is dist/sec)
-        Vector2 frameDeltaPos = vel * Time.fixedDeltaTime;
 
         //Debug.Log("Init vel: " + vel);
         //Debug.Log("Init deltaPos: " + frameDeltaPos);
 
-        vel = moveRB3(vel, Time.fixedDeltaTime, Vector2.down, !jumping);
+        vel = moveRB3(vel, Time.fixedDeltaTime, Vector2.down, false);
         //vel = moveRB2(frameDeltaPos, Vector2.down, false);
 
 
@@ -150,8 +161,10 @@ public class astroPlayer : MonoBehaviour
 
 
 
-    Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap)
+    Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, float maxFloorAng = MIN_GROUND_DEG_ANG, bool stopOnSlope = true, float slideThreshold = SLIDE_FRIC_THRESHOLD)
     {
+        gravityDir.Normalize();
+
         //the amount to move during this frame
         Vector2 frameDeltaPos = velocity * frameTime;
 
@@ -160,7 +173,7 @@ public class astroPlayer : MonoBehaviour
         RaycastHit2D[] hitBufferGrav = new RaycastHit2D[MAX_COLLISIONS];
         RaycastHit2D[] hitBuffer = new RaycastHit2D[MAX_COLLISIONS];
 
-        int groundCheck = grounded && snap? rb.Cast(gravityDir, cf, hitBufferGrav) : rb.Cast(gravityDir, cf, hitBufferGrav, GROUNDED_MIN_DIST);
+        int groundCheck = grounded && snap? rb.Cast(gravityDir, cf, hitBufferGrav) : rb.Cast(gravityDir, cf, hitBufferGrav, GROUNDED_MIN_DIST*10);
         
         int collCount = rb.Cast(frameDeltaPos, cf, hitBuffer, frameDeltaPos.magnitude);
        
@@ -170,12 +183,14 @@ public class astroPlayer : MonoBehaviour
         collisionCount = collCount;
 
 
-        //RaycastHit2D closestGroundColl;
-
-        //if()
 
         //Logic for sticking to the surface and not flying off slope
+        //also for not sliding on slope
         Vector2 snapVect = Vector2.zero;
+        Vector2 fricVect = Vector2.zero;
+
+        grounded = false;
+        bool useGroundForColl = false;
 
         if (groundCheck > 0)
         {
@@ -185,21 +200,31 @@ public class astroPlayer : MonoBehaviour
                 closestGroundColl = closestGroundColl.distance < hitBufferGrav[i].distance ? closestGroundColl : hitBufferGrav[i];
             }
 
+            grounded = closestGroundColl.distance <= GROUNDED_MIN_DIST;
+            useGroundForColl = closestGroundColl.distance <= GROUNDED_MIN_COLL_DIST;
+
             //will always return acuter angle
             float groundDegIncline = 180 - Vector2.Angle(closestGroundColl.normal, gravityDir);
 
-            if (snap && groundDegIncline <= MIN_GROUND_DEG_ANG)
+            if (groundDegIncline <= MIN_GROUND_DEG_ANG)
             {
                 //TODO: what about distance from horiz. movement? Need to cast after horiz movement.
-                snapVect = gravityDir.normalized * closestGroundColl.distance;
+                if (snap) { snapVect = gravityDir * closestGroundColl.distance; }
+
+                //if (useGroundForColl && stopOnSlope && frameDeltaPos.magnitude < slideThreshold) { fricVect = frameDeltaPos * -1; }
+
             }
+
+            //else { frameDeltaPos -= gravityDir * Vector2.Dot(frameDeltaPos, gravityDir) * 1.5f; }
+
+            
         }
 
 
 
 
         bool prevGroundState = grounded;
-        grounded = groundCheck > 0;
+        //grounded = groundCheck > 0;
 
 
         if (!prevGroundState && grounded) { enteredGround(); }
@@ -208,7 +233,7 @@ public class astroPlayer : MonoBehaviour
         //The angles of the actual frameDeltaPos vector may be too short
         //or parallel to surface to render any hit detection with ground
         //so in any case this fails, use the floor collisions to calculate shit
-        if (collCount == 0)
+        if (collCount == 0 && useGroundForColl)
         {
             collCount = groundCheck;
             hitBuffer = hitBufferGrav;
@@ -247,10 +272,16 @@ public class astroPlayer : MonoBehaviour
 
         }
 
+        Vector2 innerFaceNorm = frameDeltaPos.x < 0? Vector2.Perpendicular(frameDeltaPos) : Vector2.Perpendicular(frameDeltaPos) * -1;
+        slideVect = innerFaceNorm;//
+        slideVectorLength = (innerFaceNorm).magnitude;
+        
+
+        
 
 
         //move the character to the new position
-        rb.MovePosition(rb.position + frameDeltaPos + snapVect);
+        rb.MovePosition(rb.position + frameDeltaPos + snapVect + fricVect);
 
         Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.green);
 
@@ -261,7 +292,7 @@ public class astroPlayer : MonoBehaviour
 
     void enteredGround()
     {
-
+        jumpTimeCounter = 0f;
     }
 
     void exitedGround()
