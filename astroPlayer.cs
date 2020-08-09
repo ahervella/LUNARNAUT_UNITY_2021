@@ -9,15 +9,15 @@ using LunarnautShit;
 
 public class astroPlayer : MonoBehaviour
 {
+    public bool debugVectorLines = false;
+
     const float MIN_MOVE_DIST = 0.001f;
     //if this is min dist too small, game can break
-    const float GROUNDED_MIN_DIST = 1f;
+    const float GROUNDED_MIN_DIST = 0.25f;
     const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 2;
     const float MIN_GROUND_DEG_ANG = 40f;
-    //float MIN_GROUND_NORM = Mathf.Sin(Mathf.Deg2Rad * MIN_GROUND_DEG_ANG);
     const float SLIDE_FRIC_THRESHOLD = 0.6f;
 
-    //TODO: increase that shit^^^
 
     const float ACCEL = 3f;
     const float AIR_ACCEL = ACCEL / 2f;
@@ -35,36 +35,22 @@ public class astroPlayer : MonoBehaviour
 
     public LunInput input;
 
-    public Vector2 direction = new Vector2(0, 0);
-    public bool jumping = false;
-    public bool canJump = false;
-    public float jumpTimeCounter = 0f;
-    public Vector2 vel = new Vector2(0, 0);
-    public Vector2 velGrav = new Vector2(0, 0);
-    public Vector2 velMove = new Vector2(0, 0);
+    Vector2 direction = new Vector2(0, 0);
+    bool jumping = false;
+    bool canJump = false;
+    float jumpTimeCounter = 0f;
+    Vector2 vel = new Vector2(0, 0);
 
-    public Vector2 groundNorm = new Vector2(0, 0);
-    public bool grounded = false;
-    public bool onWall = false;
+    Vector2 groundNorm = new Vector2(0, 0);
+    bool grounded = false;
+    bool onWall = false;
 
-    //just for debugging
-    public float hbd = 0f;
-    public float projMagnitude = 0f;
-    public int collisionCount = 0;
-    public float slideVectorLength = 0f;
-    public Vector2 slideVect = Vector2.zero;
 
     ContactFilter2D cf;
 
     //initialized with max number of collisions 
     //able to store per frame
     const int MAX_COLLISIONS = 16;
-    //RaycastHit2D[] hitBuffer = new RaycastHit2D[MAX_COLLISIONS];
-    //RaycastHit2D[] hitBufferGrav = new RaycastHit2D[MAX_COLLISIONS];
-    //RaycastHit2D[] hitBufferMove = new RaycastHit2D[MAX_COLLISIONS];
-    //List<RaycastHit2D> hitBufferList = new List<RaycastHit2D>(MAX_COLLISIONS);
-
-    public Vector2 savedHorzMove = new Vector2(0, 0);
 
     
     //Happens before onEnable, only once ever 
@@ -158,16 +144,7 @@ public class astroPlayer : MonoBehaviour
 
         vel = new Vector2(xVel, yVel);
 
-
-
-
         vel = moveRB3(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
-
-
-
-
-
-
     }
 
 
@@ -191,11 +168,7 @@ public class astroPlayer : MonoBehaviour
        
         //for debugging and drawing lines
         Vector2 bottomOfShape = rb.position - new Vector2(0, shape.size.y / 2f * transform.localScale.y);
-        Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.white);
-        collisionCount = collCount;
-
-
-
+        if (debugVectorLines) { Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.white); }
 
 
         bool prevGroundState = grounded;
@@ -222,19 +195,9 @@ public class astroPlayer : MonoBehaviour
             onWall = closestGroundColl.distance <= GROUNDED_MIN_DIST && groundDegIncline > MIN_GROUND_DEG_ANG;
             useGroundForColl = closestGroundColl.distance <= GROUNDED_MIN_COLL_DIST;
 
-            //will always return acuter angle
-
-
-            //else { frameDeltaPos -= gravityDir * Vector2.Dot(frameDeltaPos, gravityDir) * 1.5f; }
-
-            
         }
 
 
-
-
-        
-        //grounded = groundCheck > 0;
 
 
         if (!prevGroundState && grounded) { enteredGround(); }
@@ -269,8 +232,7 @@ public class astroPlayer : MonoBehaviour
             Vector2 subtractingVect = projMag * closestColl.normal.normalized;
 
             //debugging
-            Debug.DrawLine(bottomOfShape, bottomOfShape + subtractingVect / Time.deltaTime, Color.yellow);
-            projMagnitude = projMag;
+            if (debugVectorLines) { Debug.DrawLine(bottomOfShape, bottomOfShape + subtractingVect / Time.deltaTime, Color.yellow); }
 
             //If normal is greater than 90 deg from vel, dot product will be negative
             if (projMag < 0)
@@ -279,14 +241,8 @@ public class astroPlayer : MonoBehaviour
                 //(or grav direction vel) to zero when grounded
                 frameDeltaPos -= subtractingVect;
             }
-
-
         }
 
-        //Vector2 innerFaceNorm = frameDeltaPos.x < 0? Vector2.Perpendicular(frameDeltaPos) : Vector2.Perpendicular(frameDeltaPos) * -1;
-        //slideVect = innerFaceNorm;//Sie
-
-        //slideVectorLength = (innerFaceNorm).magnitude;
 
 
         //Logic for sticking to the surface and not flying off slope
@@ -306,28 +262,23 @@ public class astroPlayer : MonoBehaviour
                 if (useGroundForColl && stopOnSlope && frameDeltaPos.magnitude < ST) { fricVect = frameDeltaPos * -1; }
 
             }
-            else if (useGroundForColl)
-            {
-                //Vector2 parallel2Floor = Vector2.Perpendicular(closestColl.normal);
-                //parallel2Floor = Vector2.Angle(parallel2Floor, gravityDir) < 90? parallel2Floor : parallel2Floor * -1;
-
-                //slideVect = gravityDir * frameDeltaPos.magnitude;
-            }
         }
 
 
-
+        
+        if (debugVectorLines)
+        {
+            Debug.Log("fdp: " + frameDeltaPos.ToString("F10"));
+            Debug.Log("snapV: " + snapVect.ToString("F10"));
+            Debug.Log("fricVect: " + fricVect.ToString("F10"));
+            Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.green);
+        }
 
         //move the character to the new position
-        Debug.Log("fdp: " + frameDeltaPos.ToString("F10"));
-        Debug.Log("snapV: " + snapVect.ToString("F10"));
-        Debug.Log("fricVect: " + fricVect.ToString("F10"));
-        rb.MovePosition(rb.position + frameDeltaPos + snapVect + fricVect + slideVect);
+        rb.MovePosition(rb.position + frameDeltaPos + snapVect + fricVect);
 
-        Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.green);
 
         //return the new real velocity (not including snap velocity)
-        //TODO: include snap velocity when returning?
         return frameDeltaPos / Time.deltaTime;
     }
 
