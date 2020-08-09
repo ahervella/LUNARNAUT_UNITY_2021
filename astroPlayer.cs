@@ -14,11 +14,13 @@ public class astroPlayer : MonoBehaviour
     const float GROUNDED_MIN_DIST = 5f;
     const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 10;
     const float MIN_GROUND_DEG_ANG = 40f;
-    float MIN_GROUND_NORM = Mathf.Sin(Mathf.Deg2Rad * MIN_GROUND_DEG_ANG);
-    const float SLIDE_FRIC_THRESHOLD = 1f;
+    //float MIN_GROUND_NORM = Mathf.Sin(Mathf.Deg2Rad * MIN_GROUND_DEG_ANG);
+    const float SLIDE_FRIC_THRESHOLD = 0.6f;
 
-    const float ACCEL = 6f/2f;
-    const float AIR_ACCEL = ACCEL / 4f;
+    //TODO: increase that shit^^^
+
+    const float ACCEL = 3f;
+    const float AIR_ACCEL = ACCEL / 6f;
     const float MAX_SPEED = 160f / 2f;
     const float MAX_AIR_SPEED = MAX_SPEED;
     const float GRAVITY = 180f / 2f;
@@ -126,9 +128,10 @@ public class astroPlayer : MonoBehaviour
         float accel = grounded ? ACCEL : AIR_ACCEL;
         accel = direction.x == 0 ? -accel : accel;
         float dirSign = direction.x * vel.x;
+        float speed = onWall ? MAX_SPEED / 4 : MAX_SPEED;
         if (dirSign <= 0 || (dirSign > 0 && MAX_SPEED > vel.x))
         {
-            xVel = Mathf.Lerp(vel.x, direction.x * MAX_SPEED, Time.deltaTime * ACCEL);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
+            xVel = Mathf.Lerp(vel.x, direction.x * speed, Time.deltaTime * ACCEL);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
         }
         
 
@@ -176,7 +179,7 @@ public class astroPlayer : MonoBehaviour
 
 
 
-    Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, float maxFloorAng = MIN_GROUND_DEG_ANG, bool stopOnSlope = true, float slideThreshold = SLIDE_FRIC_THRESHOLD)
+    Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG)
     {
         gravityDir.Normalize();
 
@@ -306,7 +309,8 @@ public class astroPlayer : MonoBehaviour
                 //TODO: what about distance from horiz. movement? Need to cast after horiz movement.
                 if (snap) { snapVect = gravityDir * closestGroundColl.distance; }
 
-                if (useGroundForColl && stopOnSlope && frameDeltaPos.magnitude < slideThreshold) { fricVect = frameDeltaPos * -1; }
+                var ST = Mathf.Lerp(0, slideThreshold, groundDegIncline / MIN_GROUND_DEG_ANG);
+                if (useGroundForColl && stopOnSlope && frameDeltaPos.magnitude < ST) { fricVect = frameDeltaPos * -1; }
 
             }
             else if (useGroundForColl)
@@ -319,7 +323,7 @@ public class astroPlayer : MonoBehaviour
         }
 
          snapVect = Vector2.zero;
-         fricVect = Vector2.zero;
+         //fricVect = Vector2.zero;
          slideVect = Vector2.zero;
 
 
