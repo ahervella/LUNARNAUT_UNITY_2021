@@ -11,8 +11,8 @@ public class astroPlayer : MonoBehaviour
 {
     const float MIN_MOVE_DIST = 0.001f;
     //if this is min dist too small, game can break
-    const float GROUNDED_MIN_DIST = 5f;
-    const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 10;
+    const float GROUNDED_MIN_DIST = 1f;
+    const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 2;
     const float MIN_GROUND_DEG_ANG = 40f;
     //float MIN_GROUND_NORM = Mathf.Sin(Mathf.Deg2Rad * MIN_GROUND_DEG_ANG);
     const float SLIDE_FRIC_THRESHOLD = 0.6f;
@@ -20,7 +20,7 @@ public class astroPlayer : MonoBehaviour
     //TODO: increase that shit^^^
 
     const float ACCEL = 3f;
-    const float AIR_ACCEL = ACCEL / 6f;
+    const float AIR_ACCEL = ACCEL / 2f;
     const float MAX_SPEED = 160f / 2f;
     const float MAX_AIR_SPEED = MAX_SPEED;
     const float GRAVITY = 180f / 2f;
@@ -126,12 +126,11 @@ public class astroPlayer : MonoBehaviour
         float xVel = vel.x;
 
         float accel = grounded ? ACCEL : AIR_ACCEL;
-        accel = direction.x == 0 ? -accel : accel;
         float dirSign = direction.x * vel.x;
         float speed = onWall ? MAX_SPEED / 4 : MAX_SPEED;
         if (dirSign <= 0 || (dirSign > 0 && MAX_SPEED > vel.x))
         {
-            xVel = Mathf.Lerp(vel.x, direction.x * speed, Time.deltaTime * ACCEL);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
+            xVel = Mathf.Lerp(vel.x, direction.x * speed, Time.deltaTime * accel);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
         }
         
 
@@ -155,19 +154,14 @@ public class astroPlayer : MonoBehaviour
                 yVel = JUMP_VERT_SPEED;// * Time.fixedDeltaTime * 4;
 
             }
-
-            
         }
 
         vel = new Vector2(xVel, yVel);
 
 
 
-        //Debug.Log("Init vel: " + vel);
-        //Debug.Log("Init deltaPos: " + frameDeltaPos);
 
-        vel = moveRB3(vel, Time.fixedDeltaTime, Vector2.down, false);
-        //vel = moveRB2(frameDeltaPos, Vector2.down, false);
+        vel = moveRB3(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
 
 
 
@@ -179,7 +173,7 @@ public class astroPlayer : MonoBehaviour
 
 
 
-    Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG)
+    Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG, float slideThreshold = SLIDE_FRIC_THRESHOLD)
     {
         gravityDir.Normalize();
 
@@ -299,7 +293,6 @@ public class astroPlayer : MonoBehaviour
         //also for not sliding on slope
         Vector2 snapVect = Vector2.zero;
         Vector2 fricVect = Vector2.zero;
-        Vector2 slideVect = Vector2.zero;
 
         if (groundCheck > 0)
         {
@@ -322,9 +315,6 @@ public class astroPlayer : MonoBehaviour
             }
         }
 
-         snapVect = Vector2.zero;
-         //fricVect = Vector2.zero;
-         slideVect = Vector2.zero;
 
 
 
@@ -351,208 +341,6 @@ public class astroPlayer : MonoBehaviour
 
     }
 
-
-    /*
-    Vector2 moveRB2(Vector2 frameDeltaPos, Vector2 gravityDir, bool snap = false)
-    {
-        //cast in the direction of movement to check for floor. If nothing found, cast in direction of grav.
-        var gravCollCount = snap? 0 : rb.Cast(gravityDir, cf, hitBufferGrav, SHELL_RADIUS);
-
-        var moveCollCount = rb.Cast(frameDeltaPos, cf, hitBufferMove, frameDeltaPos.magnitude);
-       
-
-        grounded = false;
-
-        //if collided, need to change how it slides against collision
-        if (gravCollCount > 0)
-        {
-            //get shortest length collision
-            RaycastHit2D shortestGravHit = hitBufferGrav[0];
-
-            for (int i = 1; i < gravCollCount; i++)
-            {
-                var hb = hitBufferGrav[i];
-                shortestGravHit = hb.distance < shortestGravHit.distance ? hb : shortestGravHit;
-            }
-
-            //just for debugging
-
-
-            //check if its min dist. to be grounded
-            if (shortestGravHit.distance <= GROUNDED_MIN_DIST)
-            {
-                grounded = true;
-
-                //TODO: change to be parallel. to gravityDir
-                frameDeltaPos.y = 0;
-            }
-
-
-        }
-
-
-
-        if (moveCollCount > 0)
-        {
-            //get shortest length collision
-            RaycastHit2D shortestMoveHit = hitBufferMove[0];
-
-            for (int i = 1; i < moveCollCount; i++)
-            {
-                var hb = hitBufferMove[i];
-                shortestMoveHit = hb.distance < shortestMoveHit.distance ? hb : shortestMoveHit;
-            }
-
-
-            //hbd = shortestHit.distance;
-            Debug.Log("hbd: " + hbd);
-            Debug.Log("grounded" + grounded);
-
-            //only move along collider parallel if grounded and x direction is not zero
-            //TODO: change to be perp. to gravityDir
-            if (frameDeltaPos.x != 0)
-            {
-                Vector2 perpVect = Vector2.Perpendicular(shortestMoveHit.normal);
-
-                perpVect = perpVect * Mathf.Sign(frameDeltaPos.x);
-
-               // Debug.Log("perpVect: " + perpVect);
-               // Debug.Log("normal: " + shortestHit.normal);
-
-                float horizDist = Vector2.Dot(new Vector2(frameDeltaPos.x, 0), perpVect);
-
-               // Debug.Log("horizDist: " + horizDist);
-
-                Vector2 newHorzVect = perpVect * horizDist;
-
-                //Debug.Log("newHorzVect: " + newHorzVect);
-
-                frameDeltaPos.x = 0;
-                frameDeltaPos += newHorzVect;
-            }
-
-
-        }
-
-        //Debug.Log("final vel: " + vel);
-        //Debug.Log("final deltaPos: " + frameDeltaPos);
-
-        //apply move and return altered velocity
-        rb.MovePosition(rb.position + frameDeltaPos);
-
-        return frameDeltaPos / Time.deltaTime;
-
-
-    }
-
-    /*
-    void moveRB(Vector2 move, bool yMove)
-    {
-        float moveDist = move.magnitude;
-
-        if (moveDist > MIN_MOVE_DIST)
-        {
-            //collisions info stored in hitBuffer variable
-            //maxes out using variable array size
-            int collCount = 0;
-            if (yMove)
-            {
-                collCount = rb.Cast(move, cf, hitBuffer, SHELL_RADIUS);
-            }
-
-            else
-            {
-                collCount = rb.Cast(move, cf, hitBuffer, moveDist);
-            }
-            
-
-            hitBufferList.Clear();
-
-            //not using linq shit here b/c accord. Microsoft:
-            //"LINQ syntax is typically less efficient than a foreach loop."
-
-            grounded = false;
-
-            for (int i = 0; i < collCount; i++)
-            {
-                RaycastHit2D hb = hitBuffer[i];
-                //store incase needed
-                hitBufferList.Add(hb);
-
-                Vector2 currNorm = hb.normal;
-
-                //basically if norm greater than a certain angle,
-                //then grounded.
-                if (currNorm.y > MIN_GROUND_NORM)
-                {
-                    //save for next frame to move along ground
-                    //perpendicular to this normal
-                    if (yMove)
-                    {
-                        groundNorm = currNorm;
-
-                        Debug.Log(hb.distance);
-
-                        if (hb.distance <= GROUNDED_MIN_DIST)
-                        {
-                            
-
-                            grounded = true;
-
-                            //so they don't slide b/c it's considered ground
-                            currNorm.x = 0;
-
-                            vel.y = 0;
-                            
-                        }
-                    }
-                        
-                    
-                }
-
-
-                //float projMag = Vector2.Dot(vel, currNorm);
-
-                //if normal against velocity, then alter velocity
-                //to simulate a collision
-                
-                if (projMag < 0)
-                {
-                    //apply to velocity for next frame
-                    vel -= projMag * currNorm;
-                }
-                
-
-                float newDist = hb.distance;//- SHELL_RADIUS;
-
-                //as we're looping through collision ray casts,
-                //find the shortest distance of all the collisions
-                //from our collision shapes unto the world,
-                //which is what we'll move in the end
-                if (newDist < moveDist)
-                {
-                    hbd = hb.distance;
-                    moveDist = newDist;
-                }
-
-                //moveDist = newDist < moveDist ? newDist : moveDist;
-            }
-
-
-        }
-
-        if (!yMove)
-        {
-            savedHorzMove = move.normalized * moveDist;
-        }
-        else
-        {
-            rb.MovePosition(rb.position + (move.normalized * moveDist) + savedHorzMove);
-        }
-        //advance position 
-        
-    }
-    */
 
     void OnCollisionEnter2D(Collision2D col)
     {
