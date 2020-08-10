@@ -9,6 +9,9 @@ using LunarnautShit;
 
 public class astroPlayer : MonoBehaviour
 {
+    enum ANIM { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH}
+    enum SUIT { GGG, GGR, GRR, RRR}
+
     public bool debugVectorLines = false;
 
     const float MIN_MOVE_DIST = 0.001f;
@@ -292,6 +295,15 @@ public class astroPlayer : MonoBehaviour
 
     }
 
+    void setAnim(ANIM anim)
+    {
+
+    }
+
+    void onAnimFinished(ANIM anim)
+    {
+
+    }
 
     void OnCollisionEnter2D(Collision2D col)
     {
