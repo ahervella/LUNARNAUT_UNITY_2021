@@ -10,7 +10,14 @@ using LunarnautShit;
 public class astroPlayer : MonoBehaviour
 {
     enum ANIM { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH}
-    enum SUIT { GGG, GGR, GRR, RRR}
+    enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR}
+
+    SUIT suitCode = SUIT.GGG;
+    ANIM animCode = ANIM.END1;
+    AnimatorStateInfo currAnimInfo;
+    AnimationClip currAnimClip;
+
+    List<IEnumerator> changeAnimCoroutines = new List<IEnumerator>();
 
     public bool debugVectorLines = false;
 
@@ -34,6 +41,7 @@ public class astroPlayer : MonoBehaviour
 
     Rigidbody2D rb;
     Animator anim;
+    
     CapsuleCollider2D shape;
 
     public LunInput input;
@@ -48,6 +56,7 @@ public class astroPlayer : MonoBehaviour
     bool grounded = false;
     bool onWall = false;
 
+    
 
     ContactFilter2D cf;
 
@@ -85,6 +94,9 @@ public class astroPlayer : MonoBehaviour
         //set the layer mask to the one this game object has
         cf.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
         cf.useLayerMask = true; //filter via layer mask in project settings
+
+        setAnim(ANIM.RUN);
+        setSuitCode(SUIT.RRR);
     }
 
     void FixedUpdate()
@@ -148,6 +160,11 @@ public class astroPlayer : MonoBehaviour
         vel = new Vector2(xVel, yVel);
 
         vel = moveRB3(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
+
+        animLogic();
+        //animChange();
+        //getFrame();
+        //animChange();
     }
 
 
@@ -285,6 +302,34 @@ public class astroPlayer : MonoBehaviour
         return frameDeltaPos / Time.deltaTime;
     }
 
+    void animLogic()
+    {
+        if (grounded && jumping && !isAnim(suitCode, ANIM.JUMP))
+        {
+            setAnim(ANIM.JUMP);
+        }
+
+        else if (grounded && (isAnim(suitCode, ANIM.JUMP) || isAnim(suitCode, ANIM.FALL)))
+        {
+            setAnim(ANIM.LAND);
+        }
+
+        else if (grounded && !isAnim(suitCode, ANIM.LAND))
+        {
+            if (direction.x == 0)
+            {
+                if (isAnim(suitCode, ANIM.RUN))
+                {
+                    if (getFrame() >= 41) { setAnim(ANIM.END1); }
+                    if (getFrame() >= 20) { setAnim(ANIM.END2); }
+                    if (getFrame() >= 1) { setAnim(ANIM.END1); }
+                }
+
+                if (isAnim(suitCode, ANIM.START)) { setAnim(ANIM.END1); }
+            }
+        }
+    }
+
     void enteredGround()
     {
         jumpTimeCounter = 0f;
@@ -295,10 +340,69 @@ public class astroPlayer : MonoBehaviour
 
     }
 
+    void setSuitCode(SUIT code)
+    {
+        suitCode = code;
+        changeAnimCoroutines.Add(animChange(true));// = animChange(true);
+        StartCoroutine(changeAnimCoroutines[changeAnimCoroutines.Count - 1]);
+    }
+
     void setAnim(ANIM anim)
     {
+        animCode = anim;
+        changeAnimCoroutines.Add(animChange(false));
+        StartCoroutine(changeAnimCoroutines[changeAnimCoroutines.Count - 1]);
+    }
+
+    float getFrame()
+    {
+        //return 0f;
+        float duration = currAnimClip.length;
+        float frameRate = currAnimClip.frameRate;
+        float currTime = currAnimInfo.normalizedTime;
+
+        Debug.Log("Duration: " + duration.ToString());
+        Debug.Log("FrameRate: " + frameRate.ToString());
+        Debug.Log("CurrTime: " + currTime.ToString());
+        Debug.Log("Name: " + currAnimClip.name);
+
+        return (currTime * duration * frameRate);
 
     }
+
+    bool isAnim(SUIT suit, ANIM anim)
+    {
+        string blah = currAnimClip.name;
+        string blah2 = string.Format("Astro.ASTRO_{0}_{1}", suit, anim);
+        //test this shiT^^^^^
+        return currAnimInfo.IsName(string.Format("Astro.ASTRO_{0}_{1}", suit, anim));
+    }
+
+    IEnumerator animChange(bool matchFrame = false)
+    {
+        string animName = string.Format("ASTRO_{0}_{1}", suitCode.ToString(), animCode.ToString());
+
+        float currTime = matchFrame? currAnimInfo.normalizedTime : 0;
+        anim.Play(animName, 0, currTime);
+        
+        AnimatorClipInfo[] blah = anim.GetCurrentAnimatorClipInfo(0);
+        Debug.Log("animatorClipInfo size: " + blah.Length);
+        //blah[0].clip
+
+        
+        yield return new WaitForFixedUpdate();
+        //StopCoroutine("animChange");
+        currAnimInfo = anim.GetCurrentAnimatorStateInfo(0);
+        currAnimClip = anim.GetCurrentAnimatorClipInfo(0)[0].clip;
+
+        foreach (IEnumerator cr in changeAnimCoroutines) { StopCoroutine(cr); }
+        changeAnimCoroutines.Clear();
+
+
+
+    }
+
+
 
     void onAnimFinished(ANIM anim)
     {
