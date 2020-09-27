@@ -9,11 +9,11 @@ using LunarnautShit;
 
 public class astroPlayer : MonoBehaviour
 {
-    enum ANIM { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH}
+    //enum AstroAnim.ANIM { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH}
     enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR}
 
     SUIT suitCode = SUIT.GGG;
-    ANIM animCode = ANIM.END1;
+    AstroAnim.ANIM animCode = AstroAnim.ANIM.END1;//AstroAnim.ANIM.END1;
     AnimatorStateInfo currAnimInfo;
     AnimationClip currAnimClip;
 
@@ -95,7 +95,7 @@ public class astroPlayer : MonoBehaviour
         cf.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
         cf.useLayerMask = true; //filter via layer mask in project settings
 
-        setAnim(ANIM.RUN);
+        setAnim(AstroAnim.ANIM.RUN);
         setSuitCode(SUIT.RRR);
     }
 
@@ -304,28 +304,28 @@ public class astroPlayer : MonoBehaviour
 
     void animLogic()
     {
-        if (grounded && jumping && !isAnim(suitCode, ANIM.JUMP))
+        if (grounded && jumping && !isAnim(suitCode, AstroAnim.ANIM.JUMP))
         {
-            setAnim(ANIM.JUMP);
+            setAnim(AstroAnim.ANIM.JUMP);
         }
 
-        else if (grounded && (isAnim(suitCode, ANIM.JUMP) || isAnim(suitCode, ANIM.FALL)))
+        else if (grounded && (isAnim(suitCode, AstroAnim.ANIM.JUMP) || isAnim(suitCode, AstroAnim.ANIM.FALL)))
         {
-            setAnim(ANIM.LAND);
+            setAnim(AstroAnim.ANIM.LAND);
         }
 
-        else if (grounded && !isAnim(suitCode, ANIM.LAND))
+        else if (grounded && !isAnim(suitCode, AstroAnim.ANIM.LAND))
         {
             if (direction.x == 0)
             {
-                if (isAnim(suitCode, ANIM.RUN))
+                if (isAnim(suitCode, AstroAnim.ANIM.RUN))
                 {
-                    if (getFrame() >= 41) { setAnim(ANIM.END1); }
-                    if (getFrame() >= 20) { setAnim(ANIM.END2); }
-                    if (getFrame() >= 1) { setAnim(ANIM.END1); }
+                    if (getFrame() >= 41) { setAnim(AstroAnim.ANIM.END1); }
+                    if (getFrame() >= 20) { setAnim(AstroAnim.ANIM.END2); }
+                    if (getFrame() >= 1) { setAnim(AstroAnim.ANIM.END1); }
                 }
 
-                if (isAnim(suitCode, ANIM.START)) { setAnim(ANIM.END1); }
+                if (isAnim(suitCode, AstroAnim.ANIM.START)) { setAnim(AstroAnim.ANIM.END1); }
             }
         }
     }
@@ -347,7 +347,7 @@ public class astroPlayer : MonoBehaviour
         StartCoroutine(changeAnimCoroutines[changeAnimCoroutines.Count - 1]);
     }
 
-    void setAnim(ANIM anim)
+    void setAnim(AstroAnim.ANIM anim)
     {
         animCode = anim;
         changeAnimCoroutines.Add(animChange(false));
@@ -370,7 +370,7 @@ public class astroPlayer : MonoBehaviour
 
     }
 
-    bool isAnim(SUIT suit, ANIM anim)
+    bool isAnim(SUIT suit, AstroAnim.ANIM anim)
     {
         string blah = currAnimClip.name;
         string blah2 = string.Format("Astro.ASTRO_{0}_{1}", suit, anim);
@@ -404,7 +404,7 @@ public class astroPlayer : MonoBehaviour
 
 
 
-    void onAnimFinished(ANIM anim)
+    void onAnimFinished(AstroAnim.ANIM anim)
     {
 
     }
