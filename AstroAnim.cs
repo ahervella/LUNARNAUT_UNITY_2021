@@ -47,7 +47,7 @@ public class AstroAnim : MonoBehaviour
 
     }
 
-
+    /*
     void onAnimEnd(AnimationClip animClip)
     {
         ANIM animState = ANIM.NONE;
@@ -115,7 +115,7 @@ public class AstroAnim : MonoBehaviour
         onAnimationEnded(animState);
 
     }
-
+    */
 
     void switchAnimState(ANIM an)
     {
