@@ -4,15 +4,17 @@ using System.Collections.Generic;
 
 public class AstroAnim : MonoBehaviour
 {
-    public enum ANIM { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH, NONE }
-    const int GAME_FPS = 60;
-    Animator anim;
-    AnimatorOverrideController animOC;
-    string animIndex;
-    Dictionary<string, AnimationClip> animDict = new Dictionary<string, AnimationClip>();
+    public enum PLAYER_STATE { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH, NONE }
+    private const int GAME_FPS = 60;
+    private Animator anim;
+    private AnimatorOverrideController animOC;
+    private string animIndex;
+    private Dictionary<string, AnimationClip> animDict = new Dictionary<string, AnimationClip>();
+    private PLAYER_STATE currState = PLAYER_STATE.NONE;
+    private bool canChangePlayerState = true;
 
-
-    public static event System.Action<ANIM> onAnimationStarted = delegate { };
+    public static event System.Action<PLAYER_STATE> OnAnimationStarted = delegate { };
+    public static event System.Action<PLAYER_STATE> OnAnimationEnded = delegate { };
 
     private void Start()
     {
@@ -22,17 +24,116 @@ public class AstroAnim : MonoBehaviour
     }
 
 
-
-    IEnumerator switchAnim(ANIM state, int startFrame = 0)
+    private void OnAnimEnd(AnimationClip animClip)
     {
-        onAnimationStarted(state);
+        PLAYER_STATE animState = PLAYER_STATE.NONE;
+
+        foreach (PLAYER_STATE st in System.Enum.GetValues(typeof(PLAYER_STATE)))
+        {
+            if (animClip.name == st.ToString())
+            {
+                animState = st;
+                break;
+            }
+        }
+
+        if (GameIsOver() && animState != PLAYER_STATE.DEATH)
+        {
+            InitDeath();
+            OnAnimationEnded(animState);
+            return;
+        }
+
+        switch (animState)
+        {
+            case PLAYER_STATE.DEATH:
+                return;
+
+            case PLAYER_STATE.RUN:
+                int currFrame = GetCurrFrame(animDict["RUN"], anim);
+                if (currFrame > 40 || (currFrame > 0 && currFrame < 20))
+                {
+                    SwitchAnim(PLAYER_STATE.END1);
+                }
+                else
+                {
+                    SwitchAnim(PLAYER_STATE.END2);
+                }
+                
+                break;
+
+            case PLAYER_STATE.JUMP:
+                SwitchAnimState(PLAYER_STATE.LAND);
+                //controls feel better this way
+                canChangePlayerState = true;
+                break;
+
+
+            case PLAYER_STATE.LAND:
+                canChangePlayerState = true;
+                SwitchAnimState(PLAYER_STATE.RUN);
+                break;
+
+            case PLAYER_STATE.END1:
+            case PLAYER_STATE.END2:
+                canChangePlayerState = true;
+                SwitchAnimState(PLAYER_STATE.STAND);
+                break;
+        }
+
+        OnAnimationEnded(animState);
+
+    }
+    
+
+    private bool GameIsOver()
+    {
+        return false;
+    }
+
+    private void InitDeath()
+    {
+        DefaultInitAction(PLAYER_STATE.DEATH);
+    }
+
+    public void Jump()
+    {
+        DefaultInitAction(PLAYER_STATE.JUMP);
+    }
+
+    public void Idle()
+    {
+        DefaultInitAction(PLAYER_STATE.STAND);
+    }
+
+    public void Run()
+    {
+        DefaultInitAction(PLAYER_STATE.RUN);
+    }
+
+    private void DefaultInitAction(PLAYER_STATE state)
+    {
+        SwitchAnimState(state);
+        canChangePlayerState = false;
+    }
+
+    void SwitchAnimState(PLAYER_STATE state, int startFrame = 0)
+    {
+        currState = state;
+        //PlayAAudioWrapper(state);
+        StartCoroutine(SwitchAnim(state, startFrame));
+    }
+
+    IEnumerator SwitchAnim(PLAYER_STATE state, int startFrame = 0)
+    {
+        OnAnimationStarted(state);
 
 
         string stateString = state.ToString();
 
 
         int currState = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
-        float startNormTime = getNormTimeFromFrame(animDict[stateString], anim, startFrame);
+        float startNormTime = GetNormTimeFromFrame(animDict[stateString], anim, startFrame);
 
 
         anim.Play(currState, 0, startNormTime);
@@ -47,83 +148,10 @@ public class AstroAnim : MonoBehaviour
 
     }
 
-    /*
-    void onAnimEnd(AnimationClip animClip)
-    {
-        ANIM animState = ANIM.NONE;
 
-        foreach (ANIM st in System.Enum.GetValues(typeof(ANIM)))
-        {
-            if (animClip.name == st.ToString())
-            {
-                animState = st;
-                break;
-            }
-        }
+    //frame utilities
 
-        if (gameIsOver() && animState != ANIM.DEATH)
-        {
-            //initDeath();
-            //onAnimationEnded(animState);
-            return;
-        }
-
-        switch (animState)
-        {
-            case ANIM.DEATH:
-                return;
-
-            case ANIM.JUMP:
-                switchAnimState(PLAYER_STATE.LAND_G);
-                //controls feel better this way
-                canChange = true;
-                if (!canSprint && sprintCoolDownCoroutine == null)
-                {
-                    sprintCoolDownCoroutine = StartCoroutine(sprintCoolDown());
-                }
-                break;
-
-
-            case PLAYER_STATE.LAND_G:
-                canChange = true;
-                switchAnimState(PLAYER_STATE.RUN);
-                break;
-
-
-            case PLAYER_STATE.DODGE_R:
-            case PLAYER_STATE.ROLL:
-                switchAnimState(PLAYER_STATE.RUN, 7);
-                canChange = true;
-                if (!canSprint && sprintCoolDownCoroutine == null)
-                {
-                    sprintCoolDownCoroutine = StartCoroutine(sprintCoolDown());
-                }
-                break;
-
-
-            default:
-                switchAnimState(PLAYER_STATE.RUN);
-                canChange = true;
-                if (!canSprint && sprintCoolDownCoroutine == null)
-                {
-                    sprintCoolDownCoroutine = StartCoroutine(sprintCoolDown());
-                }
-                break;
-        }
-
-
-        onAnimationEnded(animState);
-
-    }
-    */
-
-    void switchAnimState(ANIM an)
-    {
-
-    }
-
-
-    int getCurrFrame(AnimationClip animClip, Animator animator)
+    private int GetCurrFrame(AnimationClip animClip, Animator animator)
     {
         float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
         float animLength = animClip.length;
@@ -131,12 +159,12 @@ public class AstroAnim : MonoBehaviour
         return (int)(normTime * animLength * animFrameRate);
     }
 
-    float getTimeFromFrames(AnimationClip animClip, int frameCount)
+    float GetTimeFromFrames(AnimationClip animClip, int frameCount)
     {
         return animClip.frameRate / GAME_FPS * frameCount;
     }
 
-    float getNormTimeFromFrame(AnimationClip animClip, Animator animator, int frame)
+    float GetNormTimeFromFrame(AnimationClip animClip, Animator animator, int frame)
     {
         float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
         float animLength = animClip.length;

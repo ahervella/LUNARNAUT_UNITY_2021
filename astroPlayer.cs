@@ -10,12 +10,14 @@ using LunarnautShit;
 public class astroPlayer : MonoBehaviour
 {
     //enum AstroAnim.ANIM { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH}
-    enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR}
+    enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR }
 
     SUIT suitCode = SUIT.GGG;
-    AstroAnim.ANIM animCode = AstroAnim.ANIM.END1;//AstroAnim.ANIM.END1;
+    AstroAnim.PLAYER_STATE animCode = AstroAnim.PLAYER_STATE.END1;//AstroAnim.ANIM.END1;
     AnimatorStateInfo currAnimInfo;
     AnimationClip currAnimClip;
+
+    private AstroAnim animController;
 
     List<IEnumerator> changeAnimCoroutines = new List<IEnumerator>();
 
@@ -36,12 +38,12 @@ public class astroPlayer : MonoBehaviour
     const float GRAVITY = 180f / 2f;
     const float TERMINAL_VEL = 200f / 2f;
 
-    const float JUMP_VERT_SPEED = 150f/2f;
+    const float JUMP_VERT_SPEED = 150f / 2f;
     const float MAX_JUMP_TIME = 0.6f;
 
     Rigidbody2D rb;
     Animator anim;
-    
+
     CapsuleCollider2D shape;
 
     public LunInput input;
@@ -56,7 +58,7 @@ public class astroPlayer : MonoBehaviour
     bool grounded = false;
     bool onWall = false;
 
-    
+
 
     ContactFilter2D cf;
 
@@ -64,9 +66,9 @@ public class astroPlayer : MonoBehaviour
     //able to store per frame
     const int MAX_COLLISIONS = 16;
 
-    
+
     //Happens before onEnable, only once ever 
-    void Awake()
+    private void Awake()
     {
         input = new LunInput();
         input.Enable();
@@ -74,15 +76,16 @@ public class astroPlayer : MonoBehaviour
 
         //input.AstroPlayer.move. += val => processMoveInput(val.ReadValue<Vector2>());
         //input.AstroPlayer.jump.performed += nada => moveJump();
-        
+
     }
 
     //Happens every time object is instanced, after awake, before start
-    void OnEnable()
+    private void OnEnable()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         shape = GetComponent<CapsuleCollider2D>();
+        animController = GetComponent<AstroAnim>();
     }
 
     //Happens after Awake and OnEnable, once all objects have been initialized really
@@ -95,11 +98,11 @@ public class astroPlayer : MonoBehaviour
         cf.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
         cf.useLayerMask = true; //filter via layer mask in project settings
 
-        setAnim(AstroAnim.ANIM.RUN);
+        setAnim(AstroAnim.PLAYER_STATE.RUN);
         setSuitCode(SUIT.RRR);
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         //NOTE! : Time.deltaTime == Time.fixedDeltaTime when in FixedUpdate
         //(I just tested this) 
@@ -133,13 +136,13 @@ public class astroPlayer : MonoBehaviour
         {
             xVel = Mathf.Lerp(vel.x, direction.x * speed, Time.deltaTime * accel);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
         }
-        
+
 
         //makes sense to multiply by deltaTime here and later
         //because grav is acceleration
         float yVel = vel.y - (GRAVITY * Time.fixedDeltaTime);
 
-        
+
 
         //clamp limits
 
@@ -170,7 +173,7 @@ public class astroPlayer : MonoBehaviour
 
 
 
-    Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG, float slideThreshold = SLIDE_FRIC_THRESHOLD)
+    private Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG, float slideThreshold = SLIDE_FRIC_THRESHOLD)
     {
         gravityDir.Normalize();
 
@@ -182,10 +185,10 @@ public class astroPlayer : MonoBehaviour
         RaycastHit2D[] hitBufferGrav = new RaycastHit2D[MAX_COLLISIONS];
         RaycastHit2D[] hitBuffer = new RaycastHit2D[MAX_COLLISIONS];
 
-        int groundCheck = grounded && snap? rb.Cast(gravityDir, cf, hitBufferGrav) : rb.Cast(gravityDir, cf, hitBufferGrav, GROUNDED_MIN_DIST*10);
-        
+        int groundCheck = grounded && snap ? rb.Cast(gravityDir, cf, hitBufferGrav) : rb.Cast(gravityDir, cf, hitBufferGrav, GROUNDED_MIN_DIST * 10);
+
         int collCount = rb.Cast(frameDeltaPos, cf, hitBuffer, frameDeltaPos.magnitude);
-       
+
         //for debugging and drawing lines
         Vector2 bottomOfShape = rb.position - new Vector2(0, shape.size.y / 2f * transform.localScale.y);
         if (debugVectorLines) { Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.white); }
@@ -285,7 +288,7 @@ public class astroPlayer : MonoBehaviour
         }
 
 
-        
+
         if (debugVectorLines)
         {
             Debug.Log("fdp: " + frameDeltaPos.ToString("F10"));
@@ -302,59 +305,52 @@ public class astroPlayer : MonoBehaviour
         return frameDeltaPos / Time.deltaTime;
     }
 
-    void animLogic()
+    private void animLogic()
     {
-        if (grounded && jumping && !isAnim(suitCode, AstroAnim.ANIM.JUMP))
+        if (grounded && jumping && !isAnim(suitCode, AstroAnim.PLAYER_STATE.JUMP))
         {
-            setAnim(AstroAnim.ANIM.JUMP);
+            animController.Jump();
+            //setAnim(AstroAnim.PLAYER_STATE.JUMP);
         }
 
-        else if (grounded && (isAnim(suitCode, AstroAnim.ANIM.JUMP) || isAnim(suitCode, AstroAnim.ANIM.FALL)))
-        {
-            setAnim(AstroAnim.ANIM.LAND);
-        }
-
-        else if (grounded && !isAnim(suitCode, AstroAnim.ANIM.LAND))
+        else if (grounded)
         {
             if (direction.x == 0)
             {
-                if (isAnim(suitCode, AstroAnim.ANIM.RUN))
-                {
-                    if (getFrame() >= 41) { setAnim(AstroAnim.ANIM.END1); }
-                    if (getFrame() >= 20) { setAnim(AstroAnim.ANIM.END2); }
-                    if (getFrame() >= 1) { setAnim(AstroAnim.ANIM.END1); }
-                }
-
-                if (isAnim(suitCode, AstroAnim.ANIM.START)) { setAnim(AstroAnim.ANIM.END1); }
+                animController.Idle();
+            }
+            else
+            {
+                animController.Run();
             }
         }
     }
 
-    void enteredGround()
+    private void enteredGround()
     {
         jumpTimeCounter = 0f;
     }
 
-    void exitedGround()
+    private void exitedGround()
     {
 
     }
 
-    void setSuitCode(SUIT code)
+    private void setSuitCode(SUIT code)
     {
         suitCode = code;
         changeAnimCoroutines.Add(animChange(true));// = animChange(true);
         StartCoroutine(changeAnimCoroutines[changeAnimCoroutines.Count - 1]);
     }
 
-    void setAnim(AstroAnim.ANIM anim)
+    private void setAnim(AstroAnim.PLAYER_STATE anim)
     {
         animCode = anim;
         changeAnimCoroutines.Add(animChange(false));
         StartCoroutine(changeAnimCoroutines[changeAnimCoroutines.Count - 1]);
     }
 
-    float getFrame()
+    private float getFrame()
     {
         //return 0f;
         float duration = currAnimClip.length;
@@ -370,7 +366,7 @@ public class astroPlayer : MonoBehaviour
 
     }
 
-    bool isAnim(SUIT suit, AstroAnim.ANIM anim)
+    private bool isAnim(SUIT suit, AstroAnim.PLAYER_STATE anim)
     {
         string blah = currAnimClip.name;
         string blah2 = string.Format("Astro.ASTRO_{0}_{1}", suit, anim);
@@ -378,18 +374,18 @@ public class astroPlayer : MonoBehaviour
         return currAnimInfo.IsName(string.Format("Astro.ASTRO_{0}_{1}", suit, anim));
     }
 
-    IEnumerator animChange(bool matchFrame = false)
+    private IEnumerator animChange(bool matchFrame = false)
     {
         string animName = string.Format("ASTRO_{0}_{1}", suitCode.ToString(), animCode.ToString());
 
-        float currTime = matchFrame? currAnimInfo.normalizedTime : 0;
+        float currTime = matchFrame ? currAnimInfo.normalizedTime : 0;
         anim.Play(animName, 0, currTime);
-        
+
         AnimatorClipInfo[] blah = anim.GetCurrentAnimatorClipInfo(0);
         Debug.Log("animatorClipInfo size: " + blah.Length);
         //blah[0].clip
 
-        
+
         yield return new WaitForFixedUpdate();
         //StopCoroutine("animChange");
         currAnimInfo = anim.GetCurrentAnimatorStateInfo(0);
@@ -404,64 +400,64 @@ public class astroPlayer : MonoBehaviour
 
 
 
-    void onAnimFinished(AstroAnim.ANIM anim)
+    private void onAnimFinished(AstroAnim.PLAYER_STATE anim)
     {
 
     }
 
-    void OnCollisionEnter2D(Collision2D col)
+    private void OnCollisionEnter2D(Collision2D col)
     {
         //Debug.Log("touching!");
         //Debug.Log(col);
     }
 
-    void processHazards()
+    private void processHazards()
     {
 
     }
 
-    void processMoveInput(Vector2 dir)
+    private void processMoveInput(Vector2 dir)
     {
         direction = dir;
-       //if (input.AstroPlayer.move.)
+        //if (input.AstroPlayer.move.)
     }
 
-    void processInteractInput()
+    private void processInteractInput()
     {
 
     }
 
-    void processFlashLightInput()
+    private void processFlashLightInput()
     {
 
     }
 
-    void processMenuInput()
+    private void processMenuInput()
     {
 
     }
 
-    void move()
+    private void move()
     {
 
     }
 
-    void moveJump()
+    private void moveJump()
     {
 
     }
 
-    void moveCameraAndInteract()
+    private void moveCameraAndInteract()
     {
 
     }
 
-    void moveMovableObjects()
+    private void moveMovableObjects()
     {
 
     }
 
-    void retrictFromRope()
+    private void retrictFromRope()
     {
 
     }
