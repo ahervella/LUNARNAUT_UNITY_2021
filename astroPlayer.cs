@@ -7,12 +7,12 @@ using LunarnautShit;
 //https://learn.unity.com/tutorial/live-session-2d-platformer-character-controller#5c7f8528edbc2a002053b68e
 
 
-public class astroPlayer : MonoBehaviour
+public class AstroPlayer : MonoBehaviour
 {
     //enum AstroAnim.ANIM { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH}
-    enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR }
+    //enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR }
 
-    SUIT suitCode = SUIT.GGG;
+    //SUIT suitCode = SUIT.GGG;
     AstroAnim.PLAYER_STATE animCode = AstroAnim.PLAYER_STATE.END1;//AstroAnim.ANIM.END1;
     AnimatorStateInfo currAnimInfo;
     AnimationClip currAnimClip;
@@ -41,6 +41,8 @@ public class astroPlayer : MonoBehaviour
     const float JUMP_VERT_SPEED = 150f / 2f;
     const float MAX_JUMP_TIME = 0.6f;
 
+    public const int STARTING_HEALTH = 4;
+
     Rigidbody2D rb;
     Animator anim;
 
@@ -58,7 +60,18 @@ public class astroPlayer : MonoBehaviour
     bool grounded = false;
     bool onWall = false;
 
+    private int health = STARTING_HEALTH;
+    public int Health
+    {
+        get => health;
+        set
+        {
+            health = value;
+            HealthUpdated(value);
+        }
+    }
 
+    public static event System.Action<int> HealthUpdated = delegate { };
 
     ContactFilter2D cf;
 
@@ -98,8 +111,6 @@ public class astroPlayer : MonoBehaviour
         cf.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
         cf.useLayerMask = true; //filter via layer mask in project settings
 
-        setAnim(AstroAnim.PLAYER_STATE.RUN);
-        setSuitCode(SUIT.RRR);
     }
 
     private void FixedUpdate()
@@ -164,10 +175,7 @@ public class astroPlayer : MonoBehaviour
 
         vel = moveRB3(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
 
-        animLogic();
-        //animChange();
-        //getFrame();
-        //animChange();
+        animController.AnimLogicUpdate(grounded, jumping, vel.y > 0, (int)direction.x);
     }
 
 
@@ -304,28 +312,6 @@ public class astroPlayer : MonoBehaviour
         //return the new real velocity (not including snap velocity)
         return frameDeltaPos / Time.deltaTime;
     }
-
-    private void animLogic()
-    {
-        if (grounded && jumping && !isAnim(suitCode, AstroAnim.PLAYER_STATE.JUMP))
-        {
-            animController.Jump();
-            //setAnim(AstroAnim.PLAYER_STATE.JUMP);
-        }
-
-        else if (grounded)
-        {
-            if (direction.x == 0)
-            {
-                animController.Idle();
-            }
-            else
-            {
-                animController.Run();
-            }
-        }
-    }
-
     private void enteredGround()
     {
         jumpTimeCounter = 0f;
@@ -336,74 +322,6 @@ public class astroPlayer : MonoBehaviour
 
     }
 
-    private void setSuitCode(SUIT code)
-    {
-        suitCode = code;
-        changeAnimCoroutines.Add(animChange(true));// = animChange(true);
-        StartCoroutine(changeAnimCoroutines[changeAnimCoroutines.Count - 1]);
-    }
-
-    private void setAnim(AstroAnim.PLAYER_STATE anim)
-    {
-        animCode = anim;
-        changeAnimCoroutines.Add(animChange(false));
-        StartCoroutine(changeAnimCoroutines[changeAnimCoroutines.Count - 1]);
-    }
-
-    private float getFrame()
-    {
-        //return 0f;
-        float duration = currAnimClip.length;
-        float frameRate = currAnimClip.frameRate;
-        float currTime = currAnimInfo.normalizedTime;
-
-        Debug.Log("Duration: " + duration.ToString());
-        Debug.Log("FrameRate: " + frameRate.ToString());
-        Debug.Log("CurrTime: " + currTime.ToString());
-        Debug.Log("Name: " + currAnimClip.name);
-
-        return (currTime * duration * frameRate);
-
-    }
-
-    private bool isAnim(SUIT suit, AstroAnim.PLAYER_STATE anim)
-    {
-        string blah = currAnimClip.name;
-        string blah2 = string.Format("Astro.ASTRO_{0}_{1}", suit, anim);
-        //test this shiT^^^^^
-        return currAnimInfo.IsName(string.Format("Astro.ASTRO_{0}_{1}", suit, anim));
-    }
-
-    private IEnumerator animChange(bool matchFrame = false)
-    {
-        string animName = string.Format("ASTRO_{0}_{1}", suitCode.ToString(), animCode.ToString());
-
-        float currTime = matchFrame ? currAnimInfo.normalizedTime : 0;
-        anim.Play(animName, 0, currTime);
-
-        AnimatorClipInfo[] blah = anim.GetCurrentAnimatorClipInfo(0);
-        Debug.Log("animatorClipInfo size: " + blah.Length);
-        //blah[0].clip
-
-
-        yield return new WaitForFixedUpdate();
-        //StopCoroutine("animChange");
-        currAnimInfo = anim.GetCurrentAnimatorStateInfo(0);
-        currAnimClip = anim.GetCurrentAnimatorClipInfo(0)[0].clip;
-
-        foreach (IEnumerator cr in changeAnimCoroutines) { StopCoroutine(cr); }
-        changeAnimCoroutines.Clear();
-
-
-
-    }
-
-
-
-    private void onAnimFinished(AstroAnim.PLAYER_STATE anim)
-    {
-
-    }
 
     private void OnCollisionEnter2D(Collision2D col)
     {
