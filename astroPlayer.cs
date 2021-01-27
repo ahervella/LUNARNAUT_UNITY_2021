@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using LunarnautShit;
+using System;
 
 //Tutorial I used to implement this awesome shit:
 //https://learn.unity.com/tutorial/live-session-2d-platformer-character-controller#5c7f8528edbc2a002053b68e
@@ -63,6 +64,19 @@ public class astroPlayer : MonoBehaviour
     //initialized with max number of collisions 
     //able to store per frame
     const int MAX_COLLISIONS = 16;
+
+    //Use this class to add Wwise Events to different player actions
+    [Serializable]
+    private class PlayerSounds
+    {
+        [SerializeField]
+        public string jumpEventName;
+        [SerializeField]
+        public string landEventName;
+    }
+
+    [SerializeField]
+    private PlayerSounds playerSounds;
 
     
     //Happens before onEnable, only once ever 
@@ -333,11 +347,14 @@ public class astroPlayer : MonoBehaviour
     void enteredGround()
     {
         jumpTimeCounter = 0f;
+        //Plays the Wwise audio event with the corresponding string name (arg. 1) on the object (arg. 2).
+        //See my documentation for audio names (This is in progress)
+        AkSoundEngine.PostEvent(playerSounds.landEventName, gameObject);
     }
 
     void exitedGround()
     {
-
+        AkSoundEngine.PostEvent(playerSounds.jumpEventName, gameObject);
     }
 
     void setSuitCode(SUIT code)
