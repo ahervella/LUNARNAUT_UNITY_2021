@@ -6,15 +6,13 @@ using UnityEditor;
 
 public class AstroAnim : MonoBehaviour
 {
-    const string ANIMS_PATH = "Assets/ASTRO/";
+    const string ANIMS_PATH = "Assets/ANIMATION/ASTRO/";
     public enum PLAYER_STATE { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH, NONE }
     public enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR }
     private const int GAME_FPS = 60;
     private Animator anim;
     private AnimatorOverrideController animOC;
     private string animIndex;
-    //[SerializeField]
-    //private List<SuitPlayerStateEntry> animDict = new List<SuitPlayerStateEntry>();
     private Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>> animDict = new Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>>();
 
     [Serializable]
@@ -45,7 +43,7 @@ public class AstroAnim : MonoBehaviour
     private float blinkTime = NORM_BLINK_TIME;
     private Coroutine blinkCR;
 
-    private PLAYER_STATE currState = PLAYER_STATE.NONE;
+    private PLAYER_STATE currState = PLAYER_STATE.STAND;
     private bool facingRight = true;
     private int astroHealth;
     private bool canChangePlayerState = true;
@@ -58,18 +56,31 @@ public class AstroAnim : MonoBehaviour
     {
         anim = GetComponent<Animator>();
         animOC = new AnimatorOverrideController(anim.runtimeAnimatorController);
+        anim.runtimeAnimatorController = animOC;
         animIndex = animOC.animationClips[0].name;
 
         animDict.Clear();
         foreach (SUIT suit in (SUIT[])Enum.GetValues(typeof(SUIT)))
         {
-            string suitString = nameof(suit);
+            string suitString = suit.ToString();
             Dictionary<PLAYER_STATE, AnimationClip> suitEntry = new Dictionary<PLAYER_STATE, AnimationClip>();
 
             foreach (PLAYER_STATE ps in (PLAYER_STATE[])Enum.GetValues(typeof(PLAYER_STATE)))
             {
-                string psString = nameof(ps);
-                string path = ANIMS_PATH + "ASTRO_" + "_" + suitString + "_" + psString + ".anim";
+                if (ps == PLAYER_STATE.DEATH)
+                {
+                    if (suit == SUIT.RRR)
+                    {
+                        string deathAnimPath = ANIMS_PATH + "/ASTRO_DEATH.anim";
+                        suitEntry.Add(ps, (AnimationClip)AssetDatabase.LoadAssetAtPath(deathAnimPath, typeof(AnimationClip)));
+                    }
+
+                    continue;
+                }
+
+                string psString = ps.ToString();//nameof(ps);
+                string path = ANIMS_PATH + suitString + "/ASTRO_" + suitString + "_" + psString + ".anim";
+
                 suitEntry.Add(ps, (AnimationClip)AssetDatabase.LoadAssetAtPath(path, typeof(AnimationClip)));
             }
 
@@ -174,7 +185,14 @@ public class AstroAnim : MonoBehaviour
         {
             case PLAYER_STATE.START:
                 canChangePlayerState = true;
-                SwitchAnimState(PLAYER_STATE.RUN);
+                if (currXDir != 0)
+                {
+                    SwitchAnimState(PLAYER_STATE.RUN);
+                }
+                else
+                {
+                    SwitchAnimState(PLAYER_STATE.END1);
+                }
                 break;
 
             case PLAYER_STATE.DEATH:
@@ -184,19 +202,19 @@ public class AstroAnim : MonoBehaviour
                 int currFrame = GetCurrFrame(animDict[currSuit][PLAYER_STATE.RUN], anim);
                 if (currFrame > 40 || (currFrame > 0 && currFrame < 20))
                 {
-                    SwitchAnim(PLAYER_STATE.END1);
+                    SwitchAnimState(PLAYER_STATE.END1);
                 }
                 else
                 {
-                    SwitchAnim(PLAYER_STATE.END2);
+                    SwitchAnimState(PLAYER_STATE.END2);
                 }
                 
                 break;
 
             case PLAYER_STATE.JUMP:
-                SwitchAnimState(PLAYER_STATE.LAND);
+                //SwitchAnimState(PLAYER_STATE.LAND);
                 //controls feel better this way
-                canChangePlayerState = true;
+                //canChangePlayerState = true;
                 break;
 
 
@@ -228,22 +246,24 @@ public class AstroAnim : MonoBehaviour
     public void AnimLogicUpdate(bool grounded, bool jumping, bool falling, int xDir)
     {
         bool tempFacingRight = facingRight;
+        currXDir = xDir;
 
         if (xDir != 0)
         {
-            tempFacingRight = xDir > 0 ? true : false;
+            tempFacingRight = xDir > 0;
         }
 
         if (tempFacingRight != facingRight)
         {
             facingRight = tempFacingRight;
+            UpdateOrientation();
             SuitUpdate();
         }
 
 
         if (grounded)
         {
-            if (jumping && currState != PLAYER_STATE.JUMP)
+            if (jumping && !falling && currState != PLAYER_STATE.JUMP)
             {
                 DefaultInitAction(PLAYER_STATE.JUMP);
             }
@@ -253,27 +273,27 @@ public class AstroAnim : MonoBehaviour
                 DefaultInitAction(PLAYER_STATE.LAND);
             }
 
-            else if (xDir == 0 && currState == PLAYER_STATE.RUN)
-            {
-                OnAnimEnd(PLAYER_STATE.RUN);
-            }
-
             else if (xDir != 0 && (currState != PLAYER_STATE.RUN && currState != PLAYER_STATE.START))
             {
                 DefaultInitAction(PLAYER_STATE.START);
             }
+            else if (xDir == 0 && currState != PLAYER_STATE.STAND && currState != PLAYER_STATE.START && currState != PLAYER_STATE.END1 && currState != PLAYER_STATE.END2 )
+            {
+                OnAnimEnd(PLAYER_STATE.RUN);
+            }
         }
 
-        else if (falling && currState != PLAYER_STATE.FALL)
+        else if (jumping && falling && currState != PLAYER_STATE.FALL)
         {
             DefaultInitAction(PLAYER_STATE.FALL);
         }
 
-        else
-        {
-            StartCoroutine(SwitchAnimSuit());
-        }
-        
+    }
+
+    private void UpdateOrientation()
+    {
+        float multiplyer = facingRight ? 1 : -1;
+        transform.localScale = new Vector3(Math.Abs(transform.localScale.x) * multiplyer, transform.localScale.y, transform.localScale.z);
     }
 
     private bool GameIsOver()
@@ -309,6 +329,10 @@ public class AstroAnim : MonoBehaviour
 
     void SwitchAnimState(PLAYER_STATE state, int startFrame = 0)
     {
+        if (currState == state)
+        {
+            return;
+        }
         currState = state;
         //PlayAAudioWrapper(state);
         CheckForActiveSwitchAnimCR();
@@ -323,27 +347,34 @@ public class AstroAnim : MonoBehaviour
         }
     }
 
-    IEnumerator SwitchAnimSuit()
+    private void SwitchAnimSuit()
     {
-        CheckForActiveSwitchAnimCR();
+        if (switchAnimCR != null)
+        {
+            return;
+        }
+        //CheckForActiveSwitchAnimCR()
         AnimationClip ac = animDict[currSuit][currState];
-        yield return SwitchAnim(currState, GetCurrFrame(ac, anim), true, ac);
+        /*switchAnimCR = */ StartCoroutine(SwitchAnim(currState, GetCurrFrame(ac, anim), true, ac));
+
     }
 
     IEnumerator SwitchAnim(PLAYER_STATE state, int startFrame = 0, bool isSuitUpdate = false, AnimationClip ac = null)
     {
+        
+
         if (!isSuitUpdate)
         {
             OnAnimationStarted(state);
             ac = animDict[currSuit][state];
         }
         
-        int currState = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
+        int currHashState = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
         float startNormTime = GetNormTimeFromFrame(ac, anim, startFrame);
 
 
-        anim.Play(currState, 0, startNormTime);
-
+        anim.Play(currHashState, 0, startNormTime);
+        Debug.Log(state.ToString());
 
         //fuccccck this was such a bitch, need this specifically end of frame
         //or else playing from 0 wont happen at the same time as changing anim

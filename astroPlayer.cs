@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using LunarnautShit;
+//using LunarnautShit;
 
 //Tutorial I used to implement this awesome shit:
 //https://learn.unity.com/tutorial/live-session-2d-platformer-character-controller#5c7f8528edbc2a002053b68e
@@ -13,19 +13,21 @@ public class AstroPlayer : MonoBehaviour
     //enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR }
 
     //SUIT suitCode = SUIT.GGG;
-    AstroAnim.PLAYER_STATE animCode = AstroAnim.PLAYER_STATE.END1;//AstroAnim.ANIM.END1;
-    AnimatorStateInfo currAnimInfo;
-    AnimationClip currAnimClip;
+    //AstroAnim.PLAYER_STATE animCode = AstroAnim.PLAYER_STATE.END1;//AstroAnim.ANIM.END1;
+    //AnimatorStateInfo currAnimInfo;
+    //AnimationClip currAnimClip;
+
+    //private LunInput
 
     private AstroAnim animController;
 
-    List<IEnumerator> changeAnimCoroutines = new List<IEnumerator>();
+    //List<IEnumerator> changeAnimCoroutines = new List<IEnumerator>();
 
     public bool debugVectorLines = false;
 
     const float MIN_MOVE_DIST = 0.001f;
     //if this is min dist too small, game can break
-    const float GROUNDED_MIN_DIST = 0.25f;
+    const float GROUNDED_MIN_DIST = 1f;//0.25f;
     const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 2;
     const float MIN_GROUND_DEG_ANG = 40f;
     const float SLIDE_FRIC_THRESHOLD = 0.6f;
@@ -48,9 +50,9 @@ public class AstroPlayer : MonoBehaviour
 
     CapsuleCollider2D shape;
 
-    public LunInput input;
+    //public LunInput input;
 
-    Vector2 direction = new Vector2(0, 0);
+    float horizDirectoin = 0;
     bool jumping = false;
     bool canJump = false;
     float jumpTimeCounter = 0f;
@@ -83,8 +85,8 @@ public class AstroPlayer : MonoBehaviour
     //Happens before onEnable, only once ever 
     private void Awake()
     {
-        input = new LunInput();
-        input.Enable();
+        //input = new LunInput();
+        //input.Enable();
 
 
         //input.AstroPlayer.move. += val => processMoveInput(val.ReadValue<Vector2>());
@@ -96,7 +98,7 @@ public class AstroPlayer : MonoBehaviour
     private void OnEnable()
     {
         rb = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>();
+        //anim = GetComponent<Animator>();
         shape = GetComponent<CapsuleCollider2D>();
         animController = GetComponent<AstroAnim>();
     }
@@ -117,35 +119,25 @@ public class AstroPlayer : MonoBehaviour
     {
         //NOTE! : Time.deltaTime == Time.fixedDeltaTime when in FixedUpdate
         //(I just tested this) 
-
-        direction = input.AstroPlayer.move.ReadValue<Vector2>();
-
         if (jumping && grounded)
         {
             jumping = false;
         }
 
-        if (input.AstroPlayer.jump.ReadValue<float>() > 0)
-        {
-            jumping = true;
-        }
-        else
-        {
-            canJump = grounded;
-        }
+        InputUpdate();
+
 
         if (grounded) { jumpTimeCounter = 0f; }
-
 
         //get new x and y velocity\
         float xVel = vel.x;
 
         float accel = grounded ? ACCEL : AIR_ACCEL;
-        float dirSign = direction.x * vel.x;
+        float dirSign = horizDirectoin * vel.x;
         float speed = onWall ? MAX_SPEED / 4 : MAX_SPEED;
         if (dirSign <= 0 || (dirSign > 0 && MAX_SPEED > vel.x))
         {
-            xVel = Mathf.Lerp(vel.x, direction.x * speed, Time.deltaTime * accel);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
+            xVel = Mathf.Lerp(vel.x, horizDirectoin * speed, Time.deltaTime * accel);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
         }
 
 
@@ -173,15 +165,43 @@ public class AstroPlayer : MonoBehaviour
 
         vel = new Vector2(xVel, yVel);
 
-        vel = moveRB3(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
+        vel = MoveRB3Update(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
 
-        animController.AnimLogicUpdate(grounded, jumping, vel.y > 0, (int)direction.x);
+        animController.AnimLogicUpdate(grounded, jumping, vel.y < 0, (int)horizDirectoin);
     }
 
 
+    private void InputUpdate()
+    {
+
+        bool jumpInput = Input.GetKey(KeyCode.UpArrow);
+        bool rightInput = Input.GetKey(KeyCode.RightArrow);
+        bool leftInput = Input.GetKey(KeyCode.LeftArrow);
+
+        
+
+        if (jumpInput)//Input.GetKeyDown(//input.AstroPlayer.jump.ReadValue<float>() > 0)
+        {
+            jumping = true;
+        }
+        else
+        {
+            canJump = grounded;
+        }
 
 
-    private Vector2 moveRB3(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG, float slideThreshold = SLIDE_FRIC_THRESHOLD)
+        horizDirectoin = 0;
+        if (rightInput)
+        {
+            horizDirectoin++;
+        }
+        if (leftInput)
+        {
+            horizDirectoin--;
+        }
+    }
+
+    private Vector2 MoveRB3Update(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG, float slideThreshold = SLIDE_FRIC_THRESHOLD)
     {
         gravityDir.Normalize();
 
@@ -334,11 +354,6 @@ public class AstroPlayer : MonoBehaviour
 
     }
 
-    private void processMoveInput(Vector2 dir)
-    {
-        direction = dir;
-        //if (input.AstroPlayer.move.)
-    }
 
     private void processInteractInput()
     {
