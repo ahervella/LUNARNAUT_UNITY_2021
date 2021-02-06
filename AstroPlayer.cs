@@ -44,7 +44,7 @@ public class AstroPlayer : MonoBehaviour
     const float JUMP_VERT_SPEED = 150f / 2f;
     const float MAX_JUMP_TIME = 0.6f;
 
-    public const int STARTING_HEALTH = 4;
+    public const int MAX_HEALTH = 4;
 
     Rigidbody2D rb;
     Animator anim;
@@ -63,7 +63,7 @@ public class AstroPlayer : MonoBehaviour
     bool grounded = false;
     bool onWall = false;
 
-    private int health = STARTING_HEALTH;
+    private int health = MAX_HEALTH;
     public int Health
     {
         get => health;

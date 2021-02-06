@@ -87,7 +87,7 @@ public class AstroAnim : MonoBehaviour
             animDict.Add(suit, suitEntry);
         }
 
-        astroHealth = AstroPlayer.STARTING_HEALTH;
+        astroHealth = AstroPlayer.MAX_HEALTH;
         AstroPlayer.HealthUpdated += AstroPlayer_HealthUpdated;
         BlinkLoop();
     }
