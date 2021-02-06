@@ -373,13 +373,13 @@ public class AstroAnim : MonoBehaviour
         float startNormTime = GetNormTimeFromFrame(ac, anim, startFrame);
 
 
-        anim.Play(currHashState, 0, startNormTime);
+        
         Debug.Log(state.ToString());
 
         //fuccccck this was such a bitch, need this specifically end of frame
         //or else playing from 0 wont happen at the same time as changing anim
         yield return new WaitForEndOfFrame();
-
+        anim.Play(currHashState, 0, startNormTime);
         animOC[animIndex] = ac;
         switchAnimCR = null;
     }
