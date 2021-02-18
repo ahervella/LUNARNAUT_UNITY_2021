@@ -374,7 +374,7 @@ public class AstroAnim : MonoBehaviour
 
 
         
-        Debug.Log(state.ToString());
+        //Debug.Log(state.ToString());
 
         //fuccccck this was such a bitch, need this specifically end of frame
         //or else playing from 0 wont happen at the same time as changing anim
