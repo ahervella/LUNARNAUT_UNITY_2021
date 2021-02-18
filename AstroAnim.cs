@@ -6,6 +6,8 @@ using UnityEditor;
 
 public class AstroAnim : MonoBehaviour
 {
+    private const bool PRINT_ANIM_NAMES = false;
+
     const string ANIMS_PATH = "Assets/ANIMATION/ASTRO/";
     public enum PLAYER_STATE { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH, NONE }
     public enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR }
@@ -33,7 +35,6 @@ public class AstroAnim : MonoBehaviour
         public AnimationClip ac;
     }
 
-
     private SUIT currSuit = SUIT.GGG;
     private bool blinkToggle = true;
     private SUIT blinkOn = SUIT.GGG;
@@ -51,6 +52,47 @@ public class AstroAnim : MonoBehaviour
 
     public static event System.Action<PLAYER_STATE> OnAnimationStarted = delegate { };
     public static event System.Action<PLAYER_STATE> OnAnimationEnded = delegate { };
+
+    #region Astro Dev Tools Integration
+    private void Awake()
+    {
+        S_DeveloperTools_EnableChanged();
+
+        S_DevloperTools.Current.EnableDevToolsChanged -= S_DeveloperTools_EnableChanged;
+        S_DevloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
+        S_DevloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
+        S_DevloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
+    }
+
+    private void S_DeveloperTools_EnableChanged()
+    {
+        S_DevloperTools.Current.PrintAstroAnimsChanged -= S_DeveloperTools_PrintAstroAnimsChanged;
+
+        if (S_DevloperTools.Current.EnableDevTools && S_DevloperTools.Current.AstroPlayerDevTools)
+        {
+            S_DevloperTools.Current.PrintAstroAnimsChanged += S_DeveloperTools_PrintAstroAnimsChanged;
+        }
+
+        S_DevloperTools_ManualUpdate();
+    }
+
+    private void S_DevloperTools_ManualUpdate()
+    {
+        S_DeveloperTools_PrintAstroAnimsChanged();
+    }
+
+    private bool DEVTOOLS_printAstroAnims = false;
+    private void S_DeveloperTools_PrintAstroAnimsChanged()
+    {
+        if (!S_DevloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
+        {
+            DEVTOOLS_printAstroAnims = false;
+            return;
+        }
+
+        DEVTOOLS_printAstroAnims = S_DevloperTools.Current.PrintAstroAnims;
+    }
+    #endregion
 
     private void Start()
     {
@@ -283,7 +325,7 @@ public class AstroAnim : MonoBehaviour
             }
         }
 
-        else if (jumping && falling && currState != PLAYER_STATE.FALL)
+        else if (falling && currState != PLAYER_STATE.FALL)
         {
             DefaultInitAction(PLAYER_STATE.FALL);
         }
@@ -373,8 +415,8 @@ public class AstroAnim : MonoBehaviour
         float startNormTime = GetNormTimeFromFrame(ac, anim, startFrame);
 
 
-        
-        Debug.Log(state.ToString());
+
+        if (DEVTOOLS_printAstroAnims) { Debug.Log(state.ToString()); }
 
         //fuccccck this was such a bitch, need this specifically end of frame
         //or else playing from 0 wont happen at the same time as changing anim

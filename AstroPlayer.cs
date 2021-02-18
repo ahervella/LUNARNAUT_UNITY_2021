@@ -10,21 +10,8 @@ using UnityEngine;
 
 public class AstroPlayer : MonoBehaviour
 {
-    //enum AstroAnim.ANIM { END1, END2, FALL, JUMP, LAND, RUN, STAND, START, DEATH}
-    //enum SUIT { GGG, GGR, GRR, RGG, RRG, RRR }
-
-    //SUIT suitCode = SUIT.GGG;
-    //AstroAnim.PLAYER_STATE animCode = AstroAnim.PLAYER_STATE.END1;//AstroAnim.ANIM.END1;
-    //AnimatorStateInfo currAnimInfo;
-    //AnimationClip currAnimClip;
-
-    //private LunInput
 
     private AstroAnim animController;
-
-    //List<IEnumerator> changeAnimCoroutines = new List<IEnumerator>();
-
-    public bool debugVectorLines = false;
 
     const float MIN_MOVE_DIST = 0.001f;
     //if this is min dist too small, game can break
@@ -37,6 +24,7 @@ public class AstroPlayer : MonoBehaviour
     const float ACCEL = 3f;
     const float AIR_ACCEL = ACCEL / 2f;
     const float MAX_SPEED = 160f / 2f;
+    //TODO: implement max air speed
     const float MAX_AIR_SPEED = MAX_SPEED;
     const float GRAVITY = 180f / 2f;
     const float TERMINAL_VEL = 200f / 2f;
@@ -46,18 +34,32 @@ public class AstroPlayer : MonoBehaviour
 
     public const int MAX_HEALTH = 4;
 
+    //readonly allows for constants that need to be set at runtime
+    private readonly KeyCode[] JUMP_INPUT_KEY = { KeyCode.UpArrow, KeyCode.W, KeyCode.Space };
+    private readonly KeyCode[] RIGHT_INPUT_KEY = { KeyCode.RightArrow, KeyCode.D };
+    private readonly KeyCode[] LEFT_INPUT_KEY = { KeyCode.LeftArrow, KeyCode.A };
+
+    bool jumpInput_DOWN = false;
+    bool jumpInput_UP = false;
+
+    bool rightInput_DOWN = false;
+    bool rightInput_UP = false;
+    bool rightInput_STATE = false;
+
+    bool leftInput_DOWN = false;
+    bool leftInput_UP = false;
+    bool leftInput_STATE = false;
+
     Rigidbody2D rb;
-    Animator anim;
 
     CapsuleCollider2D shape;
 
-    //public LunInput input;
-
     float horizDirectoin = 0;
     bool jumping = false;
-    bool canJump = false;
     float jumpTimeCounter = 0f;
     Vector2 vel = new Vector2(0, 0);
+
+    public float GravMultiplyer { get; set; } = 1f;
 
     Vector2 groundNorm = new Vector2(0, 0);
     bool grounded = false;
@@ -95,29 +97,97 @@ public class AstroPlayer : MonoBehaviour
     [SerializeField]
     private PlayerSounds playerSounds;
 
-
-    //Happens before onEnable, only once ever 
-    private void Awake()
-    {
-        //input = new LunInput();
-        //input.Enable();
-
-
-        //input.AstroPlayer.move. += val => processMoveInput(val.ReadValue<Vector2>());
-        //input.AstroPlayer.jump.performed += nada => moveJump();
-
-    }
-
-    //Happens every time object is instanced, after awake, before start
     private void OnEnable()
     {
         rb = GetComponent<Rigidbody2D>();
-        //anim = GetComponent<Animator>();
         shape = GetComponent<CapsuleCollider2D>();
         animController = GetComponent<AstroAnim>();
     }
 
-    //Happens after Awake and OnEnable, once all objects have been initialized really
+    #region Astro Dev Tools Integration
+    /// <summary>
+    /// DO NOT TOUCH THIS
+    /// </summary>
+    private void Awake()
+    {
+        S_DeveloperTools_EnableChanged();
+
+        S_DevloperTools.Current.EnableDevToolsChanged -= S_DeveloperTools_EnableChanged;
+        S_DevloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
+        S_DevloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
+        S_DevloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
+    }
+
+    /// <summary>
+    /// CHANGE SHIT HERE FOR ADDING NEW DEV TOOLS
+    /// </summary>
+    private void S_DeveloperTools_EnableChanged()
+    {
+        S_DevloperTools.Current.CurrHealthChanged -= S_DeveloperTools_CurrHealthChanged;
+        S_DevloperTools.Current.EnableUnlimtedJumpChanged -= S_DeveloperTools_EnableUnlimtedJumpChanged;
+        S_DevloperTools.Current.KillAstro -= S_DeveloperTools_KillAstro;
+        S_DevloperTools.Current.ShowPrintAstroVelLinesChanged -= S_DeveloperTools_ShowPrintAstroVelLinesChanged;
+
+        if (S_DevloperTools.Current.EnableDevTools && S_DevloperTools.Current.AstroPlayerDevTools)
+        {
+            S_DevloperTools.Current.CurrHealthChanged += S_DeveloperTools_CurrHealthChanged;
+            S_DevloperTools.Current.EnableUnlimtedJumpChanged += S_DeveloperTools_EnableUnlimtedJumpChanged;
+            S_DevloperTools.Current.KillAstro += S_DeveloperTools_KillAstro;
+            S_DevloperTools.Current.GravityMultiplyerChanged += S_DeveloperTools_GravityMultiplyerChanged;
+            S_DevloperTools.Current.ShowPrintAstroVelLinesChanged += S_DeveloperTools_ShowPrintAstroVelLinesChanged;
+        }
+
+        S_DevloperTools_ManualUpdate();
+    }
+
+    private void S_DevloperTools_ManualUpdate()
+    {
+        S_DeveloperTools_CurrHealthChanged();
+        S_DeveloperTools_EnableUnlimtedJumpChanged();
+        S_DeveloperTools_GravityMultiplyerChanged();
+    }
+
+    private void S_DeveloperTools_CurrHealthChanged()
+    {
+        Health = S_DevloperTools.Current.CurrHealth;
+    }
+
+    private bool DEVTOOLS_unlimitedJump = false;
+    private void S_DeveloperTools_EnableUnlimtedJumpChanged()
+    {
+        DEVTOOLS_unlimitedJump = S_DevloperTools.Current.DevToolsEnabled_ASTRO_PLAYER() && S_DevloperTools.Current.EnableUnlimtedJump;
+    }
+
+    private void S_DeveloperTools_KillAstro()
+    {
+        Health = 0;
+    }
+
+    private float DEVTOOLS_gravityMultiplyer = 1f;
+    private void S_DeveloperTools_GravityMultiplyerChanged()
+    {
+        if (!S_DevloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
+        {
+            DEVTOOLS_gravityMultiplyer = 1f;
+            return;
+        }
+
+        DEVTOOLS_gravityMultiplyer = S_DevloperTools.Current.GravityMultiplyer;
+    }
+
+    private bool DEVTOOLS_showPrintAstroVelLines = false;
+    private void S_DeveloperTools_ShowPrintAstroVelLinesChanged()
+    {
+        if (!S_DevloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
+        {
+            DEVTOOLS_showPrintAstroVelLines = false;
+            return;
+        }
+
+        DEVTOOLS_showPrintAstroVelLines = S_DevloperTools.Current.ShowPrintAstroVelLines;
+    }
+    #endregion
+
     private void Start()
     {
         //TODO:impelemnt this shit in the project settings
@@ -129,17 +199,17 @@ public class AstroPlayer : MonoBehaviour
 
     }
 
+    private void Update()
+    {
+        InputUpdate();
+    }
+
     private void FixedUpdate()
     {
         //NOTE! : Time.deltaTime == Time.fixedDeltaTime when in FixedUpdate
-        //(I just tested this) 
-        if (jumping && grounded)
-        {
-            jumping = false;
-        }
+        //(I just tested this)
 
-        InputUpdate();
-
+        InputFixedUpdate();
 
         if (grounded) { jumpTimeCounter = 0f; }
 
@@ -157,7 +227,7 @@ public class AstroPlayer : MonoBehaviour
 
         //makes sense to multiply by deltaTime here and later
         //because grav is acceleration
-        float yVel = vel.y - (GRAVITY * Time.fixedDeltaTime);
+        float yVel = vel.y - (GRAVITY * GravMultiplyer * DEVTOOLS_gravityMultiplyer * Time.fixedDeltaTime);
 
 
 
@@ -167,9 +237,9 @@ public class AstroPlayer : MonoBehaviour
         xVel = Mathf.Clamp(xVel, -maxX, maxX);
         yVel = Mathf.Clamp(yVel, -TERMINAL_VEL, TERMINAL_VEL);
 
-        if (jumping && canJump)
+        if (jumping)
         {
-            if (jumpTimeCounter <= MAX_JUMP_TIME)
+            if ((jumpTimeCounter <= MAX_JUMP_TIME) || DEVTOOLS_unlimitedJump)
             {
                 jumpTimeCounter += Time.fixedDeltaTime;
                 yVel = JUMP_VERT_SPEED;// * Time.fixedDeltaTime * 4;
@@ -180,40 +250,104 @@ public class AstroPlayer : MonoBehaviour
         vel = new Vector2(xVel, yVel);
 
         vel = MoveRB3Update(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
-
+        
         animController.AnimLogicUpdate(grounded, jumping, vel.y < 0, (int)horizDirectoin);
     }
 
-
+    #region Input Management
     private void InputUpdate()
     {
+        KeyUpdate(JUMP_INPUT_KEY, true, ref jumpInput_DOWN);
+        KeyUpdate(JUMP_INPUT_KEY, false, ref jumpInput_UP);
 
-        bool jumpInput = Input.GetKey(KeyCode.UpArrow);
-        bool rightInput = Input.GetKey(KeyCode.RightArrow);
-        bool leftInput = Input.GetKey(KeyCode.LeftArrow);
+        KeyUpdate(RIGHT_INPUT_KEY, true, ref rightInput_DOWN);
+        KeyUpdate(RIGHT_INPUT_KEY, false, ref rightInput_UP);
 
-        
+        KeyUpdate(LEFT_INPUT_KEY, true, ref leftInput_DOWN);
+        KeyUpdate(LEFT_INPUT_KEY, false, ref leftInput_UP);
+    }
 
-        if (jumpInput)//Input.GetKeyDown(//input.AstroPlayer.jump.ReadValue<float>() > 0)
+    private void KeyUpdate(KeyCode[] possibleKeys, bool readDown, ref bool cachedBool)
+    {
+        if (readDown)
         {
-            jumping = true;
+            foreach (KeyCode kc in possibleKeys)
+            {
+                if (Input.GetKeyDown(kc))
+                {
+                    cachedBool = true;
+                    return;
+                }
+            }
         }
         else
         {
-            canJump = grounded;
+            foreach (KeyCode kc in possibleKeys)
+            {
+                if (Input.GetKeyUp(kc))
+                {
+                    cachedBool = true;
+                    return;
+                }
+            }
+        }
+    }
+
+    private void InputFixedUpdate()
+    {
+        //do this here to make sure we don't skip one frame presses
+        //reset the one frame inputs to false once processed in first fixed update frame
+
+        bool jumpInputDown = jumpInput_DOWN;
+        bool jumpInputUp = jumpInput_UP;
+        jumpInput_DOWN = false;
+        jumpInput_UP = false;
+
+        
+        if (rightInput_DOWN)
+        {
+            rightInput_STATE = true;
+        }
+        if (rightInput_UP)
+        {
+            rightInput_STATE = false;
+        }
+        rightInput_DOWN = false;
+        rightInput_UP = false;
+
+
+        if (leftInput_DOWN)
+        {
+            leftInput_STATE = true;
+        }
+        if (leftInput_UP)
+        {
+            leftInput_STATE = false;
+        }
+        leftInput_DOWN = false;
+        leftInput_UP = false;
+
+        //prevent from double jumping
+        if (jumpInputDown)
+        {
+            jumping = grounded || DEVTOOLS_unlimitedJump;
+        }
+        if (jumpInputUp)
+        {
+            jumping = false;
         }
 
-
         horizDirectoin = 0;
-        if (rightInput)
+        if (rightInput_STATE)
         {
             horizDirectoin++;
         }
-        if (leftInput)
+        if (leftInput_STATE)
         {
             horizDirectoin--;
         }
     }
+#endregion
 
     private Vector2 MoveRB3Update(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG, float slideThreshold = SLIDE_FRIC_THRESHOLD)
     {
@@ -233,7 +367,7 @@ public class AstroPlayer : MonoBehaviour
 
         //for debugging and drawing lines
         Vector2 bottomOfShape = rb.position - new Vector2(0, shape.size.y / 2f * transform.localScale.y);
-        if (debugVectorLines) { Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.white); }
+        if (DEVTOOLS_showPrintAstroVelLines) { Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.white); }
 
 
         bool prevGroundState = grounded;
@@ -297,7 +431,7 @@ public class AstroPlayer : MonoBehaviour
             Vector2 subtractingVect = projMag * closestColl.normal.normalized;
 
             //debugging
-            if (debugVectorLines) { Debug.DrawLine(bottomOfShape, bottomOfShape + subtractingVect / Time.deltaTime, Color.yellow); }
+            if (DEVTOOLS_showPrintAstroVelLines) { Debug.DrawLine(bottomOfShape, bottomOfShape + subtractingVect / Time.deltaTime, Color.yellow); }
 
             //If normal is greater than 90 deg from vel, dot product will be negative
             if (projMag < 0)
@@ -331,7 +465,7 @@ public class AstroPlayer : MonoBehaviour
 
 
 
-        if (debugVectorLines)
+        if (DEVTOOLS_showPrintAstroVelLines)
         {
             Debug.Log("fdp: " + frameDeltaPos.ToString("F10"));
             Debug.Log("snapV: " + snapVect.ToString("F10"));
