@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class S_DevloperTools : Singleton<S_DevloperTools>
+public class S_DeveloperTools : Singleton<S_DeveloperTools>
 {
-
     [SerializeField, GetSet("EnableDevTools")]
     private bool enableDevTools = false;
     public event System.Action EnableDevToolsChanged = delegate { };
@@ -57,7 +56,7 @@ public class S_DevloperTools : Singleton<S_DevloperTools>
 
     [SerializeField]
     private bool enableInvincibility;
-    public bool EnableInvincibility => enableInvincibility;
+    //TODO: impelent invincibility once astro can get hurt
 
     public event System.Action KillAstro = delegate { };
     [SerializeField]
@@ -126,6 +125,19 @@ public class S_DevloperTools : Singleton<S_DevloperTools>
         {
             showPrintAstroVelLines = value;
             ShowPrintAstroVelLinesChanged();
+        }
+    }
+
+    public event System.Action PrintRawPlayerInputsChanged = delegate { };
+    [SerializeField, GetSet("PrintRawPlayerInputs")]
+    private bool printRawPlayerInputs;
+    public bool PrintRawPlayerInputs
+    {
+        get => showPrintAstroVelLines;
+        set
+        {
+            showPrintAstroVelLines = value;
+            PrintRawPlayerInputsChanged();
         }
     }
     #endregion

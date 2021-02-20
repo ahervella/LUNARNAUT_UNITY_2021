@@ -47,7 +47,7 @@ public class AstroAnim : MonoBehaviour
     private PLAYER_STATE currState = PLAYER_STATE.STAND;
     private bool facingRight = true;
     private int astroHealth;
-    private bool canChangePlayerState = true;
+    //private bool canChangePlayerState = true;
     private Coroutine switchAnimCR;
 
     public static event System.Action<PLAYER_STATE> OnAnimationStarted = delegate { };
@@ -58,19 +58,19 @@ public class AstroAnim : MonoBehaviour
     {
         S_DeveloperTools_EnableChanged();
 
-        S_DevloperTools.Current.EnableDevToolsChanged -= S_DeveloperTools_EnableChanged;
-        S_DevloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
-        S_DevloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
-        S_DevloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.EnableDevToolsChanged -= S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
     }
 
     private void S_DeveloperTools_EnableChanged()
     {
-        S_DevloperTools.Current.PrintAstroAnimsChanged -= S_DeveloperTools_PrintAstroAnimsChanged;
+        S_DeveloperTools.Current.PrintAstroAnimsChanged -= S_DeveloperTools_PrintAstroAnimsChanged;
 
-        if (S_DevloperTools.Current.EnableDevTools && S_DevloperTools.Current.AstroPlayerDevTools)
+        if (S_DeveloperTools.Current.EnableDevTools && S_DeveloperTools.Current.AstroPlayerDevTools)
         {
-            S_DevloperTools.Current.PrintAstroAnimsChanged += S_DeveloperTools_PrintAstroAnimsChanged;
+            S_DeveloperTools.Current.PrintAstroAnimsChanged += S_DeveloperTools_PrintAstroAnimsChanged;
         }
 
         S_DevloperTools_ManualUpdate();
@@ -84,13 +84,13 @@ public class AstroAnim : MonoBehaviour
     private bool DEVTOOLS_printAstroAnims = false;
     private void S_DeveloperTools_PrintAstroAnimsChanged()
     {
-        if (!S_DevloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
+        if (!S_DeveloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
         {
             DEVTOOLS_printAstroAnims = false;
             return;
         }
 
-        DEVTOOLS_printAstroAnims = S_DevloperTools.Current.PrintAstroAnims;
+        DEVTOOLS_printAstroAnims = S_DeveloperTools.Current.PrintAstroAnims;
     }
     #endregion
 
@@ -131,7 +131,7 @@ public class AstroAnim : MonoBehaviour
 
         astroHealth = AstroPlayer.MAX_HEALTH;
         AstroPlayer.HealthUpdated += AstroPlayer_HealthUpdated;
-        BlinkLoop();
+        blinkCR = StartCoroutine(BlinkLoop());
     }
 
 
@@ -203,6 +203,7 @@ public class AstroAnim : MonoBehaviour
                     break;
             }
         }
+        currSuit = blinkToggle ? blinkOn : blinkOff;
     }
 
     private IEnumerator BlinkLoop()
@@ -210,6 +211,7 @@ public class AstroAnim : MonoBehaviour
         currSuit = blinkToggle ? blinkOn : blinkOff;
         blinkToggle = !blinkToggle;
         //TODO: Play sound here?
+        SwitchAnimSuit();
         yield return new WaitForSeconds(blinkTime);
         blinkCR = StartCoroutine(BlinkLoop());
     }
@@ -226,7 +228,7 @@ public class AstroAnim : MonoBehaviour
         switch (animState)
         {
             case PLAYER_STATE.START:
-                canChangePlayerState = true;
+                //canChangePlayerState = true;
                 if (currXDir != 0)
                 {
                     SwitchAnimState(PLAYER_STATE.RUN);
@@ -261,20 +263,21 @@ public class AstroAnim : MonoBehaviour
 
 
             case PLAYER_STATE.LAND:
-                canChangePlayerState = true;
+                //canChangePlayerState = true;
                 if (currXDir != 0)
                 {
                     SwitchAnimState(PLAYER_STATE.RUN);
                 }
                 else
                 {
-                    SwitchAnimState(PLAYER_STATE.END1);
+                    //end1 has the same frames from frames 1-6 as land, so lets no repeat those
+                    SwitchAnimState(PLAYER_STATE.END1, 7);
                 }
                 break;
 
             case PLAYER_STATE.END1:
             case PLAYER_STATE.END2:
-                canChangePlayerState = true;
+                //canChangePlayerState = true;
                 SwitchAnimState(PLAYER_STATE.STAND);
                 break;
         }
@@ -300,6 +303,7 @@ public class AstroAnim : MonoBehaviour
             facingRight = tempFacingRight;
             UpdateOrientation();
             SuitUpdate();
+            SwitchAnimSuit();
         }
 
 
@@ -313,6 +317,13 @@ public class AstroAnim : MonoBehaviour
             else if (falling && currState == PLAYER_STATE.FALL)
             {
                 DefaultInitAction(PLAYER_STATE.LAND);
+            }
+
+            //so we don't run in mid air lol
+            //also need to let the land animation finish
+            else if (jumping || currState == PLAYER_STATE.LAND)
+            {
+                return;
             }
 
             else if (xDir != 0 && (currState != PLAYER_STATE.RUN && currState != PLAYER_STATE.START))
@@ -329,7 +340,6 @@ public class AstroAnim : MonoBehaviour
         {
             DefaultInitAction(PLAYER_STATE.FALL);
         }
-
     }
 
     private void UpdateOrientation()
@@ -366,10 +376,10 @@ public class AstroAnim : MonoBehaviour
     private void DefaultInitAction(PLAYER_STATE state)
     {
         SwitchAnimState(state);
-        canChangePlayerState = false;
+        //canChangePlayerState = false;
     }
 
-    void SwitchAnimState(PLAYER_STATE state, int startFrame = 0)
+    void SwitchAnimState(PLAYER_STATE state, int startFrame = 1)
     {
         if (currState == state)
         {
@@ -391,13 +401,14 @@ public class AstroAnim : MonoBehaviour
 
     private void SwitchAnimSuit()
     {
+        //we always want any previously triggered animation change on this frame
+        //to take priority b/c this method of switching anims ONLY changes suit states
         if (switchAnimCR != null)
         {
             return;
         }
-        //CheckForActiveSwitchAnimCR()
         AnimationClip ac = animDict[currSuit][currState];
-        /*switchAnimCR = */ StartCoroutine(SwitchAnim(currState, GetCurrFrame(ac, anim), true, ac));
+        switchAnimCR =  StartCoroutine(SwitchAnim(currState, GetCurrFrame(ac, anim), true, ac));
 
     }
 
@@ -434,7 +445,8 @@ public class AstroAnim : MonoBehaviour
         float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
         float animLength = animClip.length;
         float animFrameRate = animClip.frameRate;
-        return (int)(normTime * animLength * animFrameRate);
+        //need to round up to get the frame it's currently on (ex. time 0 = frame 1)
+        return (int) Mathf.Ceil(normTime * animLength * animFrameRate);
     }
 
     float GetTimeFromFrames(AnimationClip animClip, int frameCount)
@@ -447,6 +459,7 @@ public class AstroAnim : MonoBehaviour
         float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
         float animLength = animClip.length;
         float animFrameRate = animClip.frameRate;
-        return (float)frame / (animLength * animFrameRate);
+        //Minus 1 so that frame 1 lets start at time 0
+        return (frame-1) / (animLength * animFrameRate);
     }
 }

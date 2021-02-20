@@ -112,10 +112,10 @@ public class AstroPlayer : MonoBehaviour
     {
         S_DeveloperTools_EnableChanged();
 
-        S_DevloperTools.Current.EnableDevToolsChanged -= S_DeveloperTools_EnableChanged;
-        S_DevloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
-        S_DevloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
-        S_DevloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.EnableDevToolsChanged -= S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
     }
 
     /// <summary>
@@ -123,18 +123,20 @@ public class AstroPlayer : MonoBehaviour
     /// </summary>
     private void S_DeveloperTools_EnableChanged()
     {
-        S_DevloperTools.Current.CurrHealthChanged -= S_DeveloperTools_CurrHealthChanged;
-        S_DevloperTools.Current.EnableUnlimtedJumpChanged -= S_DeveloperTools_EnableUnlimtedJumpChanged;
-        S_DevloperTools.Current.KillAstro -= S_DeveloperTools_KillAstro;
-        S_DevloperTools.Current.ShowPrintAstroVelLinesChanged -= S_DeveloperTools_ShowPrintAstroVelLinesChanged;
+        S_DeveloperTools.Current.CurrHealthChanged -= S_DeveloperTools_CurrHealthChanged;
+        S_DeveloperTools.Current.EnableUnlimtedJumpChanged -= S_DeveloperTools_EnableUnlimtedJumpChanged;
+        S_DeveloperTools.Current.KillAstro -= S_DeveloperTools_KillAstro;
+        S_DeveloperTools.Current.ShowPrintAstroVelLinesChanged -= S_DeveloperTools_ShowPrintAstroVelLinesChanged;
+        S_DeveloperTools.Current.PrintRawPlayerInputsChanged -= S_DeveloperTools_PrintRawPlayerInputsChanged;
 
-        if (S_DevloperTools.Current.EnableDevTools && S_DevloperTools.Current.AstroPlayerDevTools)
+        if (S_DeveloperTools.Current.EnableDevTools && S_DeveloperTools.Current.AstroPlayerDevTools)
         {
-            S_DevloperTools.Current.CurrHealthChanged += S_DeveloperTools_CurrHealthChanged;
-            S_DevloperTools.Current.EnableUnlimtedJumpChanged += S_DeveloperTools_EnableUnlimtedJumpChanged;
-            S_DevloperTools.Current.KillAstro += S_DeveloperTools_KillAstro;
-            S_DevloperTools.Current.GravityMultiplyerChanged += S_DeveloperTools_GravityMultiplyerChanged;
-            S_DevloperTools.Current.ShowPrintAstroVelLinesChanged += S_DeveloperTools_ShowPrintAstroVelLinesChanged;
+            S_DeveloperTools.Current.CurrHealthChanged += S_DeveloperTools_CurrHealthChanged;
+            S_DeveloperTools.Current.EnableUnlimtedJumpChanged += S_DeveloperTools_EnableUnlimtedJumpChanged;
+            S_DeveloperTools.Current.KillAstro += S_DeveloperTools_KillAstro;
+            S_DeveloperTools.Current.GravityMultiplyerChanged += S_DeveloperTools_GravityMultiplyerChanged;
+            S_DeveloperTools.Current.ShowPrintAstroVelLinesChanged += S_DeveloperTools_ShowPrintAstroVelLinesChanged;
+            S_DeveloperTools.Current.PrintRawPlayerInputsChanged += S_DeveloperTools_PrintRawPlayerInputsChanged;
         }
 
         S_DevloperTools_ManualUpdate();
@@ -145,17 +147,18 @@ public class AstroPlayer : MonoBehaviour
         S_DeveloperTools_CurrHealthChanged();
         S_DeveloperTools_EnableUnlimtedJumpChanged();
         S_DeveloperTools_GravityMultiplyerChanged();
+        S_DeveloperTools_ShowPrintAstroVelLinesChanged();
     }
 
     private void S_DeveloperTools_CurrHealthChanged()
     {
-        Health = S_DevloperTools.Current.CurrHealth;
+        Health = S_DeveloperTools.Current.CurrHealth;
     }
 
     private bool DEVTOOLS_unlimitedJump = false;
     private void S_DeveloperTools_EnableUnlimtedJumpChanged()
     {
-        DEVTOOLS_unlimitedJump = S_DevloperTools.Current.DevToolsEnabled_ASTRO_PLAYER() && S_DevloperTools.Current.EnableUnlimtedJump;
+        DEVTOOLS_unlimitedJump = S_DeveloperTools.Current.DevToolsEnabled_ASTRO_PLAYER() && S_DeveloperTools.Current.EnableUnlimtedJump;
     }
 
     private void S_DeveloperTools_KillAstro()
@@ -166,25 +169,37 @@ public class AstroPlayer : MonoBehaviour
     private float DEVTOOLS_gravityMultiplyer = 1f;
     private void S_DeveloperTools_GravityMultiplyerChanged()
     {
-        if (!S_DevloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
+        if (!S_DeveloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
         {
             DEVTOOLS_gravityMultiplyer = 1f;
             return;
         }
 
-        DEVTOOLS_gravityMultiplyer = S_DevloperTools.Current.GravityMultiplyer;
+        DEVTOOLS_gravityMultiplyer = S_DeveloperTools.Current.GravityMultiplyer;
     }
 
     private bool DEVTOOLS_showPrintAstroVelLines = false;
     private void S_DeveloperTools_ShowPrintAstroVelLinesChanged()
     {
-        if (!S_DevloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
+        if (!S_DeveloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
         {
             DEVTOOLS_showPrintAstroVelLines = false;
             return;
         }
 
-        DEVTOOLS_showPrintAstroVelLines = S_DevloperTools.Current.ShowPrintAstroVelLines;
+        DEVTOOLS_showPrintAstroVelLines = S_DeveloperTools.Current.ShowPrintAstroVelLines;
+    }
+
+    private bool DEVTOOLS_printRawPlayerInputs = false;
+    private void S_DeveloperTools_PrintRawPlayerInputsChanged()
+    {
+        if (!S_DeveloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
+        {
+            DEVTOOLS_printRawPlayerInputs = false;
+            return;
+        }
+
+        DEVTOOLS_printRawPlayerInputs = S_DeveloperTools.Current.PrintRawPlayerInputs;
     }
     #endregion
 
@@ -257,14 +272,18 @@ public class AstroPlayer : MonoBehaviour
     #region Input Management
     private void InputUpdate()
     {
-        KeyUpdate(JUMP_INPUT_KEY, true, ref jumpInput_DOWN);
-        KeyUpdate(JUMP_INPUT_KEY, false, ref jumpInput_UP);
+        lock (_lock)
+        {
+            KeyUpdate(JUMP_INPUT_KEY, true, ref jumpInput_DOWN);
+            KeyUpdate(JUMP_INPUT_KEY, false, ref jumpInput_UP);
 
-        KeyUpdate(RIGHT_INPUT_KEY, true, ref rightInput_DOWN);
-        KeyUpdate(RIGHT_INPUT_KEY, false, ref rightInput_UP);
+            KeyUpdate(RIGHT_INPUT_KEY, true, ref rightInput_DOWN);
+            KeyUpdate(RIGHT_INPUT_KEY, false, ref rightInput_UP);
 
-        KeyUpdate(LEFT_INPUT_KEY, true, ref leftInput_DOWN);
-        KeyUpdate(LEFT_INPUT_KEY, false, ref leftInput_UP);
+            KeyUpdate(LEFT_INPUT_KEY, true, ref leftInput_DOWN);
+            KeyUpdate(LEFT_INPUT_KEY, false, ref leftInput_UP);
+        }
+
     }
 
     private void KeyUpdate(KeyCode[] possibleKeys, bool readDown, ref bool cachedBool)
@@ -276,6 +295,10 @@ public class AstroPlayer : MonoBehaviour
                 if (Input.GetKeyDown(kc))
                 {
                     cachedBool = true;
+                    if (DEVTOOLS_printRawPlayerInputs)
+                    {
+                        Debug.Log("got key down for: " + kc.ToString());
+                    }
                     return;
                 }
             }
@@ -287,65 +310,85 @@ public class AstroPlayer : MonoBehaviour
                 if (Input.GetKeyUp(kc))
                 {
                     cachedBool = true;
+                    if (DEVTOOLS_printRawPlayerInputs)
+                    {
+                        Debug.Log("got key up for: " + kc.ToString());
+                    }
                     return;
                 }
             }
         }
     }
-
+    private readonly object _lock = new object();
     private void InputFixedUpdate()
     {
         //do this here to make sure we don't skip one frame presses
         //reset the one frame inputs to false once processed in first fixed update frame
 
-        bool jumpInputDown = jumpInput_DOWN;
-        bool jumpInputUp = jumpInput_UP;
-        jumpInput_DOWN = false;
-        jumpInput_UP = false;
+        //need to wrap in a lock so we don't have to use a lock
+        //because update could change the value of jumpInput_DOWN to true
+        //in between lines
+        lock (_lock)
+        {
+            bool jumpInputDown = false;
+            if (jumpInput_DOWN)
+            {
+                jumpInputDown = true;
+                jumpInput_DOWN = false;
+            }
 
+            bool jumpInputUp = false;
+            if (jumpInput_UP)
+            {
+                jumpInputUp = true;
+                jumpInput_UP = false;
+            }
+
+
+            if (rightInput_DOWN)
+            {
+                rightInput_STATE = true;
+                rightInput_DOWN = false;
+            }
+            if (rightInput_UP)
+            {
+                rightInput_STATE = false;
+                rightInput_UP = false;
+            }
+
+
+            if (leftInput_DOWN)
+            {
+                leftInput_STATE = true;
+                leftInput_DOWN = false;
+            }
+            if (leftInput_UP)
+            {
+                leftInput_STATE = false;
+                leftInput_UP = false;
+            }
+
+            //prevent from double jumping
+            if (jumpInputDown)
+            {
+                jumping = grounded || DEVTOOLS_unlimitedJump;
+            }
+            if (jumpInputUp)
+            {
+                jumping = false;
+            }
+
+            horizDirectoin = 0;
+            if (rightInput_STATE)
+            {
+                horizDirectoin++;
+            }
+            if (leftInput_STATE)
+            {
+                horizDirectoin--;
+            }
+        }
         
-        if (rightInput_DOWN)
-        {
-            rightInput_STATE = true;
-        }
-        if (rightInput_UP)
-        {
-            rightInput_STATE = false;
-        }
-        rightInput_DOWN = false;
-        rightInput_UP = false;
-
-
-        if (leftInput_DOWN)
-        {
-            leftInput_STATE = true;
-        }
-        if (leftInput_UP)
-        {
-            leftInput_STATE = false;
-        }
-        leftInput_DOWN = false;
-        leftInput_UP = false;
-
-        //prevent from double jumping
-        if (jumpInputDown)
-        {
-            jumping = grounded || DEVTOOLS_unlimitedJump;
-        }
-        if (jumpInputUp)
-        {
-            jumping = false;
-        }
-
-        horizDirectoin = 0;
-        if (rightInput_STATE)
-        {
-            horizDirectoin++;
-        }
-        if (leftInput_STATE)
-        {
-            horizDirectoin--;
-        }
     }
 #endregion
 
