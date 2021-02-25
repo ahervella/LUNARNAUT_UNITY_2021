@@ -148,6 +148,7 @@ public class AstroPlayer : MonoBehaviour
         S_DeveloperTools_EnableUnlimtedJumpChanged();
         S_DeveloperTools_GravityMultiplyerChanged();
         S_DeveloperTools_ShowPrintAstroVelLinesChanged();
+        S_DeveloperTools_PrintRawPlayerInputsChanged();
     }
 
     private void S_DeveloperTools_CurrHealthChanged()
