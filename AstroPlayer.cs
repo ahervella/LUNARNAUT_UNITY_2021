@@ -17,7 +17,7 @@ public class AstroPlayer : MonoBehaviour
     //if this is min dist too small, game can break
     const float GROUNDED_MIN_DIST = 1f;//0.25f;
     const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 2;
-    const float MIN_GROUND_DEG_ANG = 40f;
+    const float MIN_GROUND_DEG_ANG = 55f;
     const float SLIDE_FRIC_THRESHOLD = 0.6f;
 
 
