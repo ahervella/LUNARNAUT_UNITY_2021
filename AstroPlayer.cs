@@ -89,6 +89,8 @@ public class AstroPlayer : MonoBehaviour
     private class PlayerSounds
     {
         [SerializeField]
+        public GameObject wwiseChild;
+        [SerializeField]
         public string jumpEventName;
         [SerializeField]
         public string landEventName;
@@ -529,12 +531,12 @@ public class AstroPlayer : MonoBehaviour
         jumpTimeCounter = 0f;
         //Plays the Wwise audio event with the corresponding string name (arg. 1) on the object (arg. 2).
         //See my documentation for audio names (This is in progress)
-        AkSoundEngine.PostEvent(playerSounds.landEventName, gameObject);
+        AkSoundEngine.PostEvent(playerSounds.landEventName, playerSounds.wwiseChild);
     }
 
     private void exitedGround()
     {
-        AkSoundEngine.PostEvent(playerSounds.jumpEventName, gameObject);
+        AkSoundEngine.PostEvent(playerSounds.jumpEventName, playerSounds.wwiseChild);
     }
 
 
