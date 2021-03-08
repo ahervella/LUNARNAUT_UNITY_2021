@@ -11,6 +11,9 @@ public abstract class A_Interactive : MonoBehaviour
     {
         if (collision.CompareTag(ASTRO_TAG))
         {
+            //This order is important for the interactive system work properly
+            //if we are queueing texts in OnAstroEnter
+            S_AstroInteractiveQueue.Current.AddInteractive(this);
             OnAstroEnter();
         }
     }
@@ -20,6 +23,7 @@ public abstract class A_Interactive : MonoBehaviour
         if (collision.CompareTag(ASTRO_TAG))
         {
             OnAstroExit();
+            S_AstroInteractiveQueue.Current.RemoveInteractive(this);
         }
     }
 
@@ -32,6 +36,11 @@ public abstract class A_Interactive : MonoBehaviour
     /// When astro player leaves this interactive's area
     /// </summary>
     protected abstract void OnAstroExit();
+
+    /// <summary>
+    /// When astro gets to this interactive in the Astro Interactive Queuing system
+    /// </summary>
+    public abstract void OnAstroFocus();
 
     /// <summary>
     /// When astro player presses the interactive button (one frame)

@@ -8,10 +8,10 @@ public abstract class BasicInteractive : A_Interactive
     //TODO: find a smart way to group animated texts so that we can share
     //the textgameobject where ever it makes sense
     [SerializeField]
-    private SO_AnimatedText onAstroEnterText;
-    private SO_AnimatedText onAstroExitText;
-    private SO_AnimatedText onInteractText;
-    private SO_AnimatedText onReleaseInteractText;
+    private SO_AnimatedText astroEnterText;
+    private SO_AnimatedText astroExitText;
+    private SO_AnimatedText interactText;
+    private SO_AnimatedText releaseInteractText;
 
     //TODO: add an interact queue system in astro like the AstroText system?
     //Maybe combine them since they go hand in hand?
@@ -19,24 +19,24 @@ public abstract class BasicInteractive : A_Interactive
     //TODO: implement adding to astro text system
     protected override void OnAstroEnter()
     {
-        onAstroEnterText.StartAnim();
+        //could and should also work in OnAstroFocus
+        S_AstroInteractiveQueue.Current.QueueInteractiveText(this, astroEnterText);
     }
 
     protected override void OnAstroExit()
     {
-        onAstroExitText.StartAnim();
+        S_AstroInteractiveQueue.Current.QueueInteractiveText(this, astroExitText);
     }
 
     //Note ^^^ are protected and only for things that inherit this
     //vvv these are meant to be called by the astro player script
     public override void OnInteract()
     {
-        onInteractText.StartAnim();
+        S_AstroInteractiveQueue.Current.QueueInteractiveText(this, interactText);
     }
 
     public override void OnReleaseInteract()
     {
-        onReleaseInteractText.StartAnim();
+        S_AstroInteractiveQueue.Current.QueueInteractiveText(this, releaseInteractText);
     }
-
 }
