@@ -15,6 +15,7 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
     //private List<SO_AnimatedText> ATQueue = new List<SO_AnimatedText>();
     private Coroutine removingCR;
 
+    /*
     public class S_AstroTextArgs
     {
         S_AstroTextArgs(SO_AnimatedText text, TEXT_ORIENTATION orientation)
@@ -26,7 +27,7 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
         public SO_AnimatedText text { get; private set; }
         public TEXT_ORIENTATION orientation { get; private set; }
         public Vector2 customRelativeOffset { get; private set; } = new Vector2();
-    }
+    }*/
 
     /// <summary>
     /// Used to add an interactive that has no text, in case there is still behavior that executes on focus
@@ -106,7 +107,6 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
 
     public void RemoveInteractive(A_Interactive interactiveOwner)
     {
-
         //If we are currently deanimating something that was just removed,
         //let that play out and just remove this without deanimating
         if (removingCR != null)

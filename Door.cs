@@ -2,41 +2,61 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Door : MonoBehaviour
+public class Door : BasicInteractive
 {
     [SerializeField]
-    private DoorArgument doorArgument;
+    private bool automaticDoor = false;
     private BoxCollider2D closedColl;
     //TODO: custom closedCollider, one way doors...
-    //TODO: inherit from Interactive class
+    //TODO: implement airlock logic
 
     private void Awake()
     {
         closedColl = GetComponentInChildren<BoxCollider2D>();
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    protected override void OnAstroEnter()
     {
-        if (collision.CompareTag("ASTRO"))
+        base.OnAstroEnter();
+        if (automaticDoor && AllInteractArgumentsTrue())
         {
-            if (doorArgument == null || doorArgument.Argument())
-            {
-                //@Sean: play door open sound here
-                closedColl.enabled = false;
-            }
-        }
-    }
-    private void OnTriggerExit2D(Collider2D collision)
-    {
-        if (collision.CompareTag("ASTRO"))
-        {
-            //@Sean: play door closed sound here
-            closedColl.enabled = true;
+            OpenDoor();
         }
     }
 
-    public abstract class DoorArgument : ScriptableObject
+    protected override void OnSuccessfulInteract()
     {
-        public abstract bool Argument();
+        base.OnSuccessfulInteract();
+        //door will have already been open
+        if (!automaticDoor)
+        {
+            OpenDoor();
+        }
+    }
+
+    protected override void OnAstroExit()
+    {
+        CloseDoor();
+    }
+
+    private void OpenDoor()
+    {
+        //nevermind if already open
+        if (!closedColl.enabled)
+        {
+            return;
+        }
+
+        closedColl.enabled = false;
+    }
+
+    private void CloseDoor()
+    {
+        //nevermind if already closed
+        if (closedColl.enabled)
+        {
+            return;
+        }
+        closedColl.enabled = true;
     }
 }

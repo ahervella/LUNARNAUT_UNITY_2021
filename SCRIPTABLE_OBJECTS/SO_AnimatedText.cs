@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+//TODO: make a styalizing system?
 [CreateAssetMenu(fileName = "new_animatedText", menuName = "ScriptableObjects/AnimatedText", order = 1)]
 public class SO_AnimatedText : ScriptableObject
 {
@@ -17,9 +18,9 @@ public class SO_AnimatedText : ScriptableObject
 
     //Need to do this pater with getters and what not so that the SO does not get its values changed during runtime
 
-    public GameObject CurrParent
+    public Transform CurrParent
     {
-        get { return textGO.transform.parent.gameObject; }
+        get { return textGO.transform.parent; }
         set
         {
             /*
@@ -34,13 +35,11 @@ public class SO_AnimatedText : ScriptableObject
                 textGO = new GameObject();
             }
 
-            textGO.transform.parent = value.transform;
+            textGO.transform.parent = value;
             textGO.transform.localPosition = Vector3.zero;
             textGO.transform.localEulerAngles = Vector3.zero;
         }
     }
-    [SerializeField]
-    private GameObject initialParent;
 
     private string _currText;
     //TODO: implement with planed text component
@@ -118,19 +117,48 @@ public class SO_AnimatedText : ScriptableObject
 
     public bool IsAnchorAstro()
     {
-        return initialAnchor == AT_ANCHOR.ASTRO_LEFT
-            || initialAnchor == AT_ANCHOR.ASTRO_RIGHT
-            || initialAnchor == AT_ANCHOR.ASTRO_FRONT
-            || initialAnchor == AT_ANCHOR.ASTRO_BEHIND
-            || initialAnchor == AT_ANCHOR.ASTRO_CUSTOM;
+        return CurrAnchor == AT_ANCHOR.ASTRO_LEFT
+            || CurrAnchor == AT_ANCHOR.ASTRO_RIGHT
+            || CurrAnchor == AT_ANCHOR.ASTRO_FRONT
+            || CurrAnchor == AT_ANCHOR.ASTRO_BEHIND
+            || CurrAnchor == AT_ANCHOR.ASTRO_CUSTOM;
     }
 
     public bool IsAnchorCamera()
     {
-        return initialAnchor != AT_ANCHOR.LOCAL_POS && !IsAnchorAstro();
+        return CurrAnchor == AT_ANCHOR.TOP_RIGHT
+            || CurrAnchor == AT_ANCHOR.TOP_LEFT
+            || CurrAnchor == AT_ANCHOR.TOP_CENTER
+            || CurrAnchor == AT_ANCHOR.CENTER
+            || CurrAnchor == AT_ANCHOR.BOTTOM_CENTER
+            || CurrAnchor == AT_ANCHOR.BOTTOM_LEFT
+            || CurrAnchor == AT_ANCHOR.BOTTOM_RIGHT;
     }
 
-    public void StartAnim(GameObject newParent = null)
+    public void StartAnimBasedOnAnchor(A_Interactive interactiveOwner = null)
+    {
+        if (IsAnchorAstro())
+        {
+            if (interactiveOwner == null)
+            {
+                Debug.LogError(string.Format("An interactive owner is needed for queuing this animated text '{0}' to the interactive system", CurrText));
+                return;
+            }
+            S_AstroInteractiveQueue.Current.QueueInteractiveText(interactiveOwner, this, textGO.transform.localPosition);
+        }
+
+        else if (IsAnchorCamera())
+        {
+            StartAnim(/*TODO: set parent to camera*/);
+        }
+        else //LOCAL_POS 
+        {
+            StartAnim();
+        }
+    }
+
+    //TODO: lock changing text if animating?
+    public void StartAnim(Transform newParent = null)
     {
         if (newParent != null)
         {
@@ -159,6 +187,13 @@ public class SO_AnimatedText : ScriptableObject
     public float StopAndClearAnim(bool deanimate)
     {
         //TODO: implement
+        if (!deanimate)
+        {
+            Debug.Log(string.Format("cleared text '{0}'", CurrText));
+            return 0f;
+        }
+        Debug.Log(string.Format("started deanimating text '{0}'", CurrText));
+        S_AstroInteractiveQueue.Current.StartCoroutine(SudoWaitForTime(DEANIMATE_TIME, string.Format("ended deanimating text {0}", CurrText)));
         return 0f;
     }
 
