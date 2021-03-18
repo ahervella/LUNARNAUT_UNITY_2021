@@ -7,6 +7,7 @@ public class BasicInteractive : A_Interactive
 {
     //TODO: find a smart way to group animated texts so that we can share
     //the textgameobject where ever it makes sense
+    [Header("Basic Interactive")]
     [SerializeField]
     private AnimatedTextContainer astroEnterText;
     [SerializeField]

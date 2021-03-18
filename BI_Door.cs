@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Door : BasicInteractive
+public class BI_Door : BasicInteractive
 {
     [SerializeField]
     private bool automaticDoor = false;
