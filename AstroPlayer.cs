@@ -85,19 +85,13 @@ public class AstroPlayer : MonoBehaviour
     const int MAX_COLLISIONS = 16;
 
     //Use this class to add Wwise Events to different player actions
-    [Serializable]
-    private class PlayerSounds
-    {
-        [SerializeField]
-        public GameObject wwiseChild;
-        [SerializeField]
-        public string jumpEventName;
-        [SerializeField]
-        public string landEventName;
-    }
 
-    [SerializeField]
-    private PlayerSounds playerSounds;
+    [Header("Audio Properties")]
+
+    public GameObject wwiseCollider;
+    public AK.Wwise.Event jumpEvent;
+    public AK.Wwise.Event landEvent;
+    public AK.Wwise.Event footstep;
 
     private void OnEnable()
     {
@@ -531,12 +525,12 @@ public class AstroPlayer : MonoBehaviour
         jumpTimeCounter = 0f;
         //Plays the Wwise audio event with the corresponding string name (arg. 1) on the object (arg. 2).
         //See my documentation for audio names (This is in progress)
-        AkSoundEngine.PostEvent(playerSounds.landEventName, playerSounds.wwiseChild);
+        landEvent.Post(wwiseCollider);
     }
 
     private void exitedGround()
     {
-        AkSoundEngine.PostEvent(playerSounds.jumpEventName, playerSounds.wwiseChild);
+        jumpEvent.Post(wwiseCollider);
     }
 
 
