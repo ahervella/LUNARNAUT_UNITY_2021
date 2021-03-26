@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "SO_RA_Disable_Enable_Controls", menuName = "ScriptableObjects/Reactions")]
 public class SO_RA_Disable_Enable_Controls : SO_Reaction
 {
     private enum CONTROLS_ON_OFF { ENABLE, DISABLE }

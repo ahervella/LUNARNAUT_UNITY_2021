@@ -6,6 +6,8 @@ using UnityEngine;
 public abstract class A_Interactive : MonoBehaviour
 {
     private const string ASTRO_TAG = "ASTRO";
+    private const KeyCode INTERACT_KEY = KeyCode.E;
+    private bool astroInArea = false;
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -14,7 +16,8 @@ public abstract class A_Interactive : MonoBehaviour
             //This order is important for the interactive system work properly
             //if we are queueing texts in OnAstroEnter
             S_AstroInteractiveQueue.Current.AddInteractive(this);
-            OnAstroEnter();
+            OnAstroEnter(collision.gameObject);
+            astroInArea = true;
         }
     }
 
@@ -22,20 +25,46 @@ public abstract class A_Interactive : MonoBehaviour
     {
         if (collision.CompareTag(ASTRO_TAG))
         {
-            OnAstroExit();
+            OnAstroExit(collision.gameObject);
             S_AstroInteractiveQueue.Current.RemoveInteractive(this);
+            astroInArea = false;
+
+            //Trigger on release if we left area while holding down key
+            //TODO: will this possibly trigger two OnRealses
+            if (Input.GetKey(INTERACT_KEY) || Input.GetKeyDown(INTERACT_KEY))
+            {
+                OnReleaseInteract();
+            }
+        }
+    }
+
+    protected virtual void Update()
+    {
+        if (!astroInArea)
+        {
+            return;
+        }
+
+        if (Input.GetKeyDown(INTERACT_KEY))
+        {
+            OnInteract();
+        }
+
+        if (Input.GetKeyUp(INTERACT_KEY))
+        {
+            OnReleaseInteract();
         }
     }
 
     /// <summary>
     /// When astro player enters this interactive's area
     /// </summary>
-    protected abstract void OnAstroEnter();
+    protected abstract void OnAstroEnter(GameObject astroGO);
 
     /// <summary>
     /// When astro player leaves this interactive's area
     /// </summary>
-    protected abstract void OnAstroExit();
+    protected abstract void OnAstroExit(GameObject astroGO);
 
     /// <summary>
     /// When astro gets to this interactive in the Astro Interactive Queuing system

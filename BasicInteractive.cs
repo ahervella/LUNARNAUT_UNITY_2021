@@ -22,16 +22,24 @@ public class BasicInteractive : A_Interactive
     protected List<SO_Reaction> interactReactions;
     [SerializeField]
     private bool resetInteractOnExit = false;
-    
-    private bool interacted = false;
+
+    protected bool Interacted { get; private set; } = false;
+
+    protected virtual void Awake()
+    {
+        astroEnterText?.OnAwake();
+        astroExitText?.OnAwake();
+        succesfulInteractText?.OnAwake();
+        failedInteractText?.OnAwake();
+    }
 
     //TODO: add an interact queue system in astro like the AstroText system?
     //Maybe combine them since they go hand in hand?
 
     //TODO: implement adding to astro text system
-    protected override void OnAstroEnter()
+    protected override void OnAstroEnter(GameObject astroGO)
     {
-        if (!interacted)
+        if (!Interacted)
         {
             TryAnimateText(astroEnterText.AT);
         }
@@ -44,12 +52,12 @@ public class BasicInteractive : A_Interactive
         //S_AstroInteractiveQueue.Current.QueueInteractiveText(this, astroEnterText);
     }
 
-    protected override void OnAstroExit()
+    protected override void OnAstroExit(GameObject astroGO)
     {
         TryAnimateText(astroExitText.AT);
         if (resetInteractOnExit)
         {
-            interacted = false;
+            Interacted = false;
         }
     }
 
@@ -57,14 +65,14 @@ public class BasicInteractive : A_Interactive
     //vvv these are meant to be called by the astro player script
     public override void OnInteract()
     {
-        if (interacted)
+        if (Interacted)
         {
             return;
         }
 
         if (AllInteractArgumentsTrue())
         {
-            interacted = true;
+            Interacted = true;
             TryAnimateText(succesfulInteractText.AT);
             ExecuteAllInteractReactions();
             OnSuccessfulInteract();

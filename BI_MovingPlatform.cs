@@ -6,11 +6,23 @@ public class BI_MovingPlatform : BasicInteractive
 {
     [Header("Moving Platform")]
     [SerializeField]
+    private bool triggerOnSuccessInteract = true;
+
+    [SerializeField]
+    private KeyCode devToolsMoveHotKey;
+
+    [SerializeField]
+    private Transform movingPlatform;
+
+    [SerializeField]
     private float moveTime = 3f;
     /*
      * implement
     [SerializeField]
     private bool automaticLoop = false;
+
+    [SerializeField]
+    private bool orderInitWPByName = false;
     */
 
     [SerializeField]
@@ -18,7 +30,14 @@ public class BI_MovingPlatform : BasicInteractive
 
     [SerializeField]
     private List<Transform> initialWayPoints = new List<Transform>();
-    private List<Vector3> wayPoints = new List<Vector3>();
+
+    private float totalDist;
+    private float moveTimeStep;
+    private float currTime = 1f;
+
+
+    private List<Vector3> wayPointsPos = new List<Vector3>();
+    private List<float> wayPointsRot = new List<float>();
 
     private List<WayPointWrapper> wpWrappers = new List<WayPointWrapper>();
 
@@ -27,37 +46,52 @@ public class BI_MovingPlatform : BasicInteractive
     private class WayPointWrapper
     {
         public Vector2 pos;
+        public float rot;
         public float startDist;
 
-        public WayPointWrapper(Vector2 pos, float startDist)
+        public WayPointWrapper(Vector2 pos, float rot, float startDist)
         {
             this.pos = pos;
+            this.rot = rot;
             this.startDist = startDist;
         }
     }
 
+
     private int currWPIndex = 0;
 
-    [SerializeField]
-    private Transform destinaitonTransform;
+    private float currWPSlope;
+    private float currWPIntercept;
 
-    private float totalDist;
-    private float moveTimeStep;
-    private float currTime = 1f;
-    //private float delayBetweenMoves;
+    private Vector2 currAPoint;
+    private Vector2 currBPoint;
 
-    private void Awake()
+    private float currARotation;
+    private float currBRotation;
+
+
+    protected override void Awake()
     {
+        base.Awake();
+
+        S_DeveloperTools.Current.DevToolsMovingPlatformsChanged -= S_DeveloperTools_EnabledChanged;
+        S_DeveloperTools.Current.DevToolsMovingPlatformsChanged += S_DeveloperTools_EnabledChanged;
+        S_DeveloperTools.Current.EnableDevToolsChanged -= S_DeveloperTools_EnabledChanged;
+        S_DeveloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnabledChanged;
+
+        S_DeveloperTools_EnabledChanged();
+
         if (usePlatformPosAsFirstWayPoint)
         {
-            initialWayPoints.Insert(0, transform);
+            initialWayPoints.Insert(0, movingPlatform.transform);
         }
 
         //transforms move as we move the platform, so
         //just cache the points right away
         foreach (Transform wp in initialWayPoints)
         {
-            wayPoints.Add(wp.position);
+            wayPointsPos.Add(wp.position);
+            wayPointsRot.Add(wp.rotation.eulerAngles.z);
         }
 
         if (ErrorCheckForWayPointsSize())
@@ -71,7 +105,13 @@ public class BI_MovingPlatform : BasicInteractive
         GetNextWP();
 
 
-        MovePlatform();
+        //MovePlatform();
+    }
+
+    private bool DEVTOOLS_movePlatformHotKeyEnabled = false;
+    private void S_DeveloperTools_EnabledChanged()
+    {
+        DEVTOOLS_movePlatformHotKeyEnabled = S_DeveloperTools.Current.DevToolsEnabled_MOVING_PLATFORMS();
     }
 
     private float CalcTotalDist()
@@ -79,18 +119,20 @@ public class BI_MovingPlatform : BasicInteractive
         wpWrappers.Clear();
 
         float total = 0;
-        for(int i = 0; i < wayPoints.Count; i++)
+        for(int i = 0; i < wayPointsPos.Count; i++)
         {
-            Vector3 wp = wayPoints[i];
-            Vector2 pt = new Vector2(wp.x, wp.y);
+            Vector3 wpp = wayPointsPos[i];
+            float wpr = wayPointsRot[i];
+            Vector2 pt = new Vector2(wpp.x, wpp.y);
+
             if (i != 0)
             {
-                Vector3 wpPrev = wayPoints[i - 1];
+                Vector3 wpPrev = wayPointsPos[i - 1];
                 Vector2 ptPrev = new Vector2(wpPrev.x, wpPrev.y);
                 total += Vector2.Distance(pt, ptPrev);
             }
 
-            wpWrappers.Add(new WayPointWrapper(pt, total));
+            wpWrappers.Add(new WayPointWrapper(pt, wpr, total));
         }
 
         return total;
@@ -99,7 +141,10 @@ public class BI_MovingPlatform : BasicInteractive
     protected override void OnSuccessfulInteract()
     {
         base.OnSuccessfulInteract();
-        MovePlatform();
+        if (triggerOnSuccessInteract)
+        {
+            MovePlatform();
+        }
     }
 
     private void MovePlatform()
@@ -121,51 +166,43 @@ public class BI_MovingPlatform : BasicInteractive
 
     private void FixedUpdate()
     {
-        /*
-        if (currTime < 1f)
-        {
-            currTime = Mathf.Min(currTime + moveTimeStep, 1f);
-            currPos = Vector2.Lerp(currStart, currTarget, Mathf.SmoothStep(0f, 1f, currTime));
-            transform.position = new Vector3(currPos.x, currPos.y, 0);
-            Debug.Log(string.Format("currPos = {0}, currTarget = {1}, currTime = {2}", currPos, currTarget, Mathf.SmoothStep(0f, 1f, currTime)));
-        }//"I take serious supplements! I take a fucking multivitamin or something... lol
-        */
         WPFixedUpdate();
-        if (Input.GetKeyDown(KeyCode.Q))
+        if (DEVTOOLS_movePlatformHotKeyEnabled && Input.GetKeyDown(devToolsMoveHotKey))
         {
             MovePlatform();
         }
     }
 
-    private float currWPSlope;
-    private float currWPIntercept;
-
-    private Vector2 currAPoint;
-    private Vector2 currBPoint;
-
     private void GetNextWP()
     {
         //reset
-        if (currWPIndex == wpWrappers.Count -1)//count)
+        if (currWPIndex == wpWrappers.Count -1)
         {
             currWPIndex = 0;
             //reverse points so we go in opposite direction now
-            wayPoints.Reverse();
+            //next time time is set to 0
+            wayPointsPos.Reverse();
+            wayPointsRot.Reverse();
             CalcTotalDist();
         }
 
         float prevWPDist = 0f;
 
-        if (currWPIndex == 0)//currWP == null)
+        //if first one, can't use pointB as last pos
+        if (currWPIndex == 0)
         {
             currAPoint = wpWrappers[currWPIndex].pos;
+            currARotation = wpWrappers[currWPIndex].rot;
         }
         else
         {
             currAPoint = currBPoint;
+            currARotation = currBRotation;
+            prevWPDist = wpWrappers[currWPIndex].startDist;
         }
         currWPIndex++;
         currBPoint = wpWrappers[currWPIndex].pos;
+        currBRotation = wpWrappers[currWPIndex].rot;
 
         float percentOfWholeDist = (wpWrappers[currWPIndex].startDist - prevWPDist) / totalDist; //divide by total
 
@@ -180,21 +217,38 @@ public class BI_MovingPlatform : BasicInteractive
             return;
         }
 
-        currTime = Mathf.Min(currTime + moveTimeStep, 1f);
-        float currSmoothTime = Mathf.SmoothStep(0f, 1f, currTime);
-        float localTimeStep = Mathf.Min(currWPSlope * currSmoothTime + currWPIntercept, 1f);
-        transform.position = Vector2.Lerp(currAPoint, currBPoint, localTimeStep);
-        if (localTimeStep == 1f)
+        currTime += moveTimeStep;
+
+        if (currTime >= 1f)
         {
+            currTime = 1f;
+            movingPlatform.position = currBPoint;
+            movingPlatform.rotation = Quaternion.Euler(0, 0, currBRotation);
             GetNextWP();
+            return;
         }
+
+        float currSmoothTime = Mathf.SmoothStep(0f, 1f, currTime);
+        float localTimeStep = currWPSlope * currSmoothTime + currWPIntercept;
+
+        int failSafe = 0;
+        //GetNextWP gaurantees increase in currWPIndex or that currWPIndex = wpWrappers.Count - 1
+        while (localTimeStep >= 1f && currWPIndex < wpWrappers.Count - 1 && failSafe < 100)
+        {
+            failSafe++;
+            GetNextWP();
+            localTimeStep = currWPSlope * currSmoothTime + currWPIntercept;
+        }
+
+        movingPlatform.position = Vector2.Lerp(currAPoint, currBPoint, localTimeStep);
+        movingPlatform.rotation = Quaternion.Euler(0, 0, Mathf.LerpAngle(currARotation, currBRotation, localTimeStep));
     }
 
     private bool ErrorCheckForWayPointsSize()
     {
-        if (wayPoints.Count < 2)
+        if (wayPointsPos.Count < 2)
         {
-            Debug.LogError(string.Format("There are only {0} way points to use for movable platform object {1}, need more!", wayPoints.Count, name));
+            Debug.LogError(string.Format("There are only {0} way points to use for movable platform object {1}, need more!", wayPointsPos.Count, name));
             return true;
         }
 

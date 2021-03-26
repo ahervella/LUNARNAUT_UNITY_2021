@@ -133,11 +133,31 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
     private bool printRawPlayerInputs;
     public bool PrintRawPlayerInputs
     {
-        get => showPrintAstroVelLines;
+        get => printRawPlayerInputs;
         set
         {
-            showPrintAstroVelLines = value;
+            printRawPlayerInputs = value;
             PrintRawPlayerInputsChanged();
+        }
+    }
+    #endregion
+
+    #region MOVING_PLATFORMS
+    public bool DevToolsEnabled_MOVING_PLATFORMS()
+    {
+        return EnableDevTools && DevToolsMovingPlatforms;
+    }
+
+    public event System.Action DevToolsMovingPlatformsChanged = delegate { };
+    [SerializeField, GetSet("DevToolsMovingPlatforms")]
+    private bool devToolsMovingPlatforms;
+    public bool DevToolsMovingPlatforms
+    {
+        get => devToolsMovingPlatforms;
+        set
+        {
+            devToolsMovingPlatforms = value;
+            DevToolsMovingPlatformsChanged();
         }
     }
     #endregion

@@ -107,18 +107,20 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
 
     public void RemoveInteractive(A_Interactive interactiveOwner)
     {
+        if (!ATQueue.ContainsKey(interactiveOwner))
+        {
+            return;
+        }
+
         //If we are currently deanimating something that was just removed,
         //let that play out and just remove this without deanimating
-        if (removingCR != null)
+        if (removingCR != null || ATQueue[interactiveOwner] == null)
         {
             ATQueue.Remove(interactiveOwner);
             return;
         }
 
-        if (ATQueue.ContainsKey(interactiveOwner))
-        {
-            removingCR = StartCoroutine(StartRemovalCoroutine(interactiveOwner));
-        }
+        removingCR = StartCoroutine(StartRemovalCoroutine(interactiveOwner));
     }
 
     private IEnumerator StartRemovalCoroutine(A_Interactive interactiveOwner)

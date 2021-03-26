@@ -1,18 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class SO_RA_TurnTrollyOn : MonoBehaviour
+[CreateAssetMenu(fileName = "SO_RA_TurnTrollyOn", menuName = "ScriptableObjects/Reactions/PrologueLvl/TurnTrollyOn")]
+public class SO_RA_TurnTrollyOn : SO_Reaction
 {
-    // Start is called before the first frame update
-    void Start()
+    public override void Execute()
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        S_LevelArguments.Current.PrologueLvl.TROLLY_POWERED_ON = true;
+        Debug.Log("Turned on trolly power");
     }
 }

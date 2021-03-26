@@ -2,7 +2,7 @@
 using System.Collections;
 
 //TODO: make a styalizing system?
-[CreateAssetMenu(fileName = "new_animatedText", menuName = "ScriptableObjects/AnimatedText", order = 1)]
+[CreateAssetMenu(fileName = "new_animatedText", menuName = "ScriptableObjects/AnimatedText")]
 public class SO_AnimatedText : ScriptableObject
 {
     public const float ANIMATE_TIME = 2f;
