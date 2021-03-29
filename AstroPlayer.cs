@@ -10,7 +10,7 @@ using UnityEngine;
 
 public class AstroPlayer : MonoBehaviour
 {
-
+    const string MOVING_PLATFORM_TAG = "MOVING_PLATFORM";
     private AstroAnim animController;
 
     const float MIN_MOVE_DIST = 0.001f;
@@ -64,6 +64,8 @@ public class AstroPlayer : MonoBehaviour
     Vector2 groundNorm = new Vector2(0, 0);
     bool grounded = false;
     bool onWall = false;
+
+    Vector2? movingPlatform = null;
 
     private int health = MAX_HEALTH;
     public int Health
@@ -411,8 +413,10 @@ public class AstroPlayer : MonoBehaviour
 
 
         bool prevGroundState = grounded;
+        Vector2? prevMovingPlatform = movingPlatform == null ? null : movingPlatform;
 
         grounded = false;
+        movingPlatform = null;
         onWall = false;
         bool useGroundForColl = false;
         RaycastHit2D closestGroundColl = new RaycastHit2D();
@@ -431,6 +435,15 @@ public class AstroPlayer : MonoBehaviour
 
 
             grounded = closestGroundColl.distance <= GROUNDED_MIN_DIST && groundDegIncline <= MIN_GROUND_DEG_ANG;
+
+            if (grounded)
+            {
+                if (closestGroundColl.collider.CompareTag(MOVING_PLATFORM_TAG))
+                {
+                    movingPlatform = (Vector2?) new Vector2 (closestGroundColl.collider.transform.position.x, closestGroundColl.collider.transform.position.y);
+                }
+            }
+
             onWall = closestGroundColl.distance <= GROUNDED_MIN_DIST && groundDegIncline > MIN_GROUND_DEG_ANG;
             useGroundForColl = closestGroundColl.distance <= GROUNDED_MIN_COLL_DIST;
 
@@ -513,8 +526,15 @@ public class AstroPlayer : MonoBehaviour
             Debug.DrawLine(bottomOfShape, bottomOfShape + frameDeltaPos / Time.deltaTime, Color.green);
         }
 
+        Vector2 movingPlatformVect = Vector2.zero;
         //move the character to the new position
-        rb.MovePosition(rb.position + frameDeltaPos + snapVect + fricVect);
+        if (prevMovingPlatform != null && movingPlatform != null)
+        {
+            movingPlatformVect = movingPlatform.Value - prevMovingPlatform.Value ;
+        }
+
+        Debug.Log(movingPlatformVect);
+        rb.MovePosition(rb.position + frameDeltaPos + snapVect + fricVect + movingPlatformVect);
 
 
         //return the new real velocity (not including snap velocity)
