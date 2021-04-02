@@ -17,6 +17,28 @@ public class AstroAnim : MonoBehaviour
     private string animIndex;
     private Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>> animDict = new Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>>();
 
+    private Dictionary<PLAYER_STATE, int[]> footstepSoundDict = new Dictionary<PLAYER_STATE, int[]>()
+    {
+        //frames that step happens for RUN anim (first frame = 0)
+        {PLAYER_STATE.RUN, new int[]{15, 38} },
+        {PLAYER_STATE.END1, new int[]{6} },
+        {PLAYER_STATE.END2, new int[]{6} }
+    };
+
+    private Dictionary<PLAYER_STATE, int[]> footburshSoundDict = new Dictionary<PLAYER_STATE, int[]>()
+    {
+        {PLAYER_STATE.RUN, new int[]{19, 42} },
+        {PLAYER_STATE.END1, new int[]{9} },
+        {PLAYER_STATE.END2, new int[]{9} }
+    };
+
+    private Dictionary<PLAYER_STATE, int[]> footliftSoundDict = new Dictionary<PLAYER_STATE, int[]>()
+    {
+        {PLAYER_STATE.RUN, new int[]{26, 3} }
+    };
+
+    int lastFramedPlayed;
+
     [Serializable]
     private class SuitPlayerStateEntry
     {
@@ -52,6 +74,24 @@ public class AstroAnim : MonoBehaviour
 
     public static event System.Action<PLAYER_STATE> OnAnimationStarted = delegate { };
     public static event System.Action<PLAYER_STATE> OnAnimationEnded = delegate { };
+    public static event System.Action<float> OnOrientationUpdate = delegate { };
+
+    [Header("Audio Properties")]
+    [SerializeField]
+    private GameObject wwiseCollider;
+    [SerializeField]
+    private AK.Wwise.Event jumpSoundEvent;
+    [SerializeField]
+    private AK.Wwise.Event landSoundEvent;
+    [SerializeField]
+    private AK.Wwise.Event footstepSoundEvent;
+    [SerializeField]
+    private AK.Wwise.Event footbrushSoundEvent;
+    [SerializeField]
+    private AK.Wwise.Event footliftSoundEvent;
+
+    [SerializeField]
+    private AK.Wwise.Event suitBeepSoundEvent;
 
     #region Astro Dev Tools Integration
     private void Awake()
@@ -208,13 +248,23 @@ public class AstroAnim : MonoBehaviour
 
     private IEnumerator BlinkLoop()
     {
-        currSuit = blinkToggle ? blinkOn : blinkOff;
+        if (blinkToggle)
+        {
+            currSuit = blinkOn;
+            suitBeepSoundEvent.Post(wwiseCollider);
+        }
+        else
+        {
+            currSuit = blinkOff;
+        }
+
         blinkToggle = !blinkToggle;
-        //TODO: Play sound here?
         SwitchAnimSuit();
         yield return new WaitForSeconds(blinkTime);
         blinkCR = StartCoroutine(BlinkLoop());
     }
+
+
 
     private void OnAnimEnd(PLAYER_STATE animState)
     {
@@ -288,7 +338,20 @@ public class AstroAnim : MonoBehaviour
 
     private int currXDir = 0;
 
-    public void AnimLogicUpdate(bool grounded, bool jumping, bool falling, int xDir)
+    private bool grounded;
+    private bool jumping;
+    private bool falling;
+    private int xDir;
+
+    public void AnimLogicFixedUpdate(bool grounded, bool jumping, bool falling, int xDir)
+    {
+        this.grounded = grounded;
+        this.jumping = jumping;
+        this.falling = falling;
+        this.xDir = xDir;
+    }
+
+    public void AnimLogicLateUpdate()
     {
         bool tempFacingRight = facingRight;
         currXDir = xDir;
@@ -306,17 +369,24 @@ public class AstroAnim : MonoBehaviour
             SwitchAnimSuit();
         }
 
+        //if (grounded)
 
         if (grounded)
         {
             if (jumping && !falling && currState != PLAYER_STATE.JUMP)
             {
                 DefaultInitAction(PLAYER_STATE.JUMP);
+                jumpSoundEvent.Post(wwiseCollider);
             }
 
             else if (falling && currState == PLAYER_STATE.FALL)
             {
                 DefaultInitAction(PLAYER_STATE.LAND);
+
+
+                //Plays the Wwise audio event with the corresponding string name (arg. 1) on the object (arg. 2).
+                //See my documentation for audio names (This is in progress)
+                landSoundEvent.Post(wwiseCollider);
             }
 
             //so we don't run in mid air lol
@@ -346,6 +416,75 @@ public class AstroAnim : MonoBehaviour
     {
         float multiplyer = facingRight ? 1 : -1;
         transform.localScale = new Vector3(Math.Abs(transform.localScale.x) * multiplyer, transform.localScale.y, transform.localScale.z);
+        OnOrientationUpdate(multiplyer);
+    }
+
+
+    //TODO: optimize by just putting in the animation frames? Is that faster?
+    private void LateUpdate()
+    {
+        //TODO: do we still want to keep these in the fixed update?
+        //Should be fine because we already save for all animation things
+        // to change end of frame? What about for getting the curr frame?
+        AnimLogicLateUpdate();
+        UpdatePlayFootstepSound();
+    }
+
+    //Used in animation trigger
+    private void UpdatePlayFootstepSound()
+    {
+
+        int currFrame = GetCurrFrame(animDict[currSuit][PLAYER_STATE.RUN], anim);
+
+
+        if (lastFramedPlayed == currFrame)
+        {
+            return;
+        }
+
+        lastFramedPlayed = currFrame;
+        Debug.Log(String.Format("CurrAnim = {0}, CurrFrame{1}", currState.ToString(), currFrame));
+
+
+        if (footstepSoundEvent == null)
+        {
+            return;
+        }
+        if (!footstepSoundDict.ContainsKey(currState))
+        {
+            return;
+        }
+
+
+        int[] frames = footstepSoundDict[currState];
+        foreach (int frame in frames)
+        {
+            if (frame == currFrame)
+            {
+                footstepSoundEvent.Post(wwiseCollider);
+                return;
+            }
+        }
+
+        frames = footburshSoundDict[currState];
+        foreach (int frame in frames)
+        {
+            if (frame == currFrame)
+            {
+                footbrushSoundEvent.Post(wwiseCollider);
+                return;
+            }
+        }
+
+        frames = footliftSoundDict[currState];
+        foreach (int frame in frames)
+        {
+            if (frame == currFrame)
+            {
+                footliftSoundEvent.Post(wwiseCollider);
+                return;
+            }
+        }
     }
 
     private bool GameIsOver()
@@ -456,7 +595,8 @@ public class AstroAnim : MonoBehaviour
 
     float GetNormTimeFromFrame(AnimationClip animClip, Animator animator, int frame)
     {
-        float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+        //modulos b/c integer part of nubmer represents number of loops, float percent of loop
+        float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime % 1;
         float animLength = animClip.length;
         float animFrameRate = animClip.frameRate;
         //Minus 1 so that frame 1 lets start at time 0

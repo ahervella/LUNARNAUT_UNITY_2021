@@ -5,6 +5,7 @@ using UnityEngine;
 public class BI_Door : BasicInteractive
 {
     private enum DOOR_ENTRANCE { BOTH, RIGHT_ONLY, LEFT_ONLY}
+
     [Header("Door")]
     [SerializeField]
     private bool automaticDoor = false;
@@ -18,6 +19,18 @@ public class BI_Door : BasicInteractive
     private BoxCollider2D closedColl;
     //TODO: custom closedCollider, one way doors...
     //TODO: implement airlock logic
+    [SerializeField]
+    private bool rightSidePressurized = true;
+    [SerializeField]
+    private bool leftSidePressurized = true;
+
+
+    [SerializeField]
+    private AK.Wwise.Event pressurizedSoundEvent;
+    [SerializeField]
+    private AK.Wwise.Event depressurizedSoundEvent;
+
+    private bool astroOnRightSide;
 
     protected override void Awake()
     {
@@ -27,7 +40,9 @@ public class BI_Door : BasicInteractive
 
     protected override void OnAstroEnter(GameObject astroGO)
     {
-        if (OneWayRestriction(astroGO))
+        astroOnRightSide = astroGO.transform.position.x > transform.position.x;
+
+        if (OneWayRestriction())
         {
             return;
         }
@@ -39,16 +54,16 @@ public class BI_Door : BasicInteractive
         }
     }
 
-    private bool OneWayRestriction(GameObject astroGO)
+    private bool OneWayRestriction()
     {
         switch (oneWayBehavior)
         {
             case DOOR_ENTRANCE.BOTH:
                 return false;
             case DOOR_ENTRANCE.LEFT_ONLY:
-                return astroGO.transform.position.x > transform.position.x;
+                return !astroOnRightSide;
             case DOOR_ENTRANCE.RIGHT_ONLY:
-                return astroGO.transform.position.x < transform.position.x;
+                return astroOnRightSide;
             default:
                 return false;
         }
@@ -64,12 +79,6 @@ public class BI_Door : BasicInteractive
         }
     }
 
-    protected override void OnAstroExit(GameObject astroGO)
-    {
-        base.OnAstroExit(astroGO);
-        CloseDoor();
-    }
-
     private void OpenDoor()
     {
         //nevermind if already open
@@ -78,7 +87,30 @@ public class BI_Door : BasicInteractive
             return;
         }
 
+        SetPressurization();
+
         closedColl.enabled = false;
+    }
+
+    private void SetPressurization()
+    {
+        if (astroOnRightSide)
+        {
+            if (astroOnRightSide && rightSidePressurized || !astroOnRightSide && leftSidePressurized)
+            {
+                //TODO: play pressurized sound and activate pressurized env 
+            }
+            else
+            {
+                //TODO: play depressurized sound and activate depressurized env
+            }
+        }
+    }
+
+    protected override void OnAstroExit(GameObject astroGO)
+    {
+        base.OnAstroExit(astroGO);
+        CloseDoor();
     }
 
     private void CloseDoor()

@@ -10,27 +10,27 @@ using UnityEngine;
 
 public class AstroPlayer : MonoBehaviour
 {
-    const string MOVING_PLATFORM_TAG = "MOVING_PLATFORM";
+    private const string MOVING_PLATFORM_TAG = "MOVING_PLATFORM";
     private AstroAnim animController;
 
-    const float MIN_MOVE_DIST = 0.001f;
+    private const float MIN_MOVE_DIST = 0.001f;
     //if this is min dist too small, game can break
-    const float GROUNDED_MIN_DIST = 1f;//0.25f;
-    const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 2;
-    const float MIN_GROUND_DEG_ANG = 55f;
-    const float SLIDE_FRIC_THRESHOLD = 0.6f;
+    private const float GROUNDED_MIN_DIST = 1f;//0.25f;
+    private const float GROUNDED_MIN_COLL_DIST = GROUNDED_MIN_DIST / 2;
+    private const float MIN_GROUND_DEG_ANG = 55f;
+    private const float SLIDE_FRIC_THRESHOLD = 0.6f;
 
 
-    const float ACCEL = 3f;
-    const float AIR_ACCEL = ACCEL / 2f;
-    const float MAX_SPEED = 160f / 2f;
+    private const float ACCEL = 3f;
+    private const float AIR_ACCEL = ACCEL / 2f;
+    private const float MAX_SPEED = 160f / 2f;
     //TODO: implement max air speed
-    const float MAX_AIR_SPEED = MAX_SPEED;
-    const float GRAVITY = 180f / 2f;
-    const float TERMINAL_VEL = 200f / 2f;
+    private const float MAX_AIR_SPEED = MAX_SPEED;
+    private const float GRAVITY = 180f / 2f;
+    private const float TERMINAL_VEL = 200f / 2f;
 
-    const float JUMP_VERT_SPEED = 150f / 2f;
-    const float MAX_JUMP_TIME = 0.6f;
+    private const float JUMP_VERT_SPEED = 150f / 2f;
+    private const float MAX_JUMP_TIME = 0.6f;
 
     public const int MAX_HEALTH = 4;
 
@@ -39,33 +39,33 @@ public class AstroPlayer : MonoBehaviour
     private readonly KeyCode[] RIGHT_INPUT_KEY = { KeyCode.RightArrow, KeyCode.D };
     private readonly KeyCode[] LEFT_INPUT_KEY = { KeyCode.LeftArrow, KeyCode.A };
 
-    bool jumpInput_DOWN = false;
-    bool jumpInput_UP = false;
+    private bool jumpInput_DOWN = false;
+    private bool jumpInput_UP = false;
 
-    bool rightInput_DOWN = false;
-    bool rightInput_UP = false;
-    bool rightInput_STATE = false;
+    private bool rightInput_DOWN = false;
+    private bool rightInput_UP = false;
+    private bool rightInput_STATE = false;
 
-    bool leftInput_DOWN = false;
-    bool leftInput_UP = false;
-    bool leftInput_STATE = false;
+    private bool leftInput_DOWN = false;
+    private bool leftInput_UP = false;
+    private bool leftInput_STATE = false;
 
-    Rigidbody2D rb;
+    private Rigidbody2D rb;
 
-    CapsuleCollider2D shape;
+    private CapsuleCollider2D shape;
 
-    float horizDirectoin = 0;
-    bool jumping = false;
-    float jumpTimeCounter = 0f;
-    Vector2 vel = new Vector2(0, 0);
+    private float horizDirectoin = 0;
+    private bool jumping = false;
+    private float jumpTimeCounter = 0f;
+    private Vector2 vel = new Vector2(0, 0);
 
     public float GravMultiplyer { get; set; } = 1f;
 
-    Vector2 groundNorm = new Vector2(0, 0);
-    bool grounded = false;
-    bool onWall = false;
+    private Vector2 groundNorm = new Vector2(0, 0);
+    private bool grounded = false;
+    private bool onWall = false;
 
-    Vector2? movingPlatform = null;
+    private Vector2? movingPlatform = null;
 
     private int health = MAX_HEALTH;
     public int Health
@@ -80,20 +80,11 @@ public class AstroPlayer : MonoBehaviour
 
     public static event System.Action<int> HealthUpdated = delegate { };
 
-    ContactFilter2D cf;
+    private ContactFilter2D cf;
 
     //initialized with max number of collisions 
     //able to store per frame
-    const int MAX_COLLISIONS = 16;
-
-    //Use this class to add Wwise Events to different player actions
-
-    [Header("Audio Properties")]
-
-    public GameObject wwiseCollider;
-    public AK.Wwise.Event jumpEvent;
-    public AK.Wwise.Event landEvent;
-    public AK.Wwise.Event footstep;
+    private const int MAX_COLLISIONS = 16;
 
     private void OnEnable()
     {
@@ -265,7 +256,7 @@ public class AstroPlayer : MonoBehaviour
 
         vel = MoveRB3Update(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
         
-        animController.AnimLogicUpdate(grounded, jumping, vel.y < 0, (int)horizDirectoin);
+        animController.AnimLogicFixedUpdate(grounded, jumping, vel.y < 0, (int)horizDirectoin);
     }
 
     #region Input Management
@@ -533,7 +524,8 @@ public class AstroPlayer : MonoBehaviour
             movingPlatformVect = movingPlatform.Value - prevMovingPlatform.Value ;
         }
 
-        Debug.Log(movingPlatformVect);
+        //TODO: make this a dev feature to print velocity
+        //Debug.Log(movingPlatformVect);
         rb.MovePosition(rb.position + frameDeltaPos + snapVect + fricVect + movingPlatformVect);
 
 
@@ -543,14 +535,10 @@ public class AstroPlayer : MonoBehaviour
     private void enteredGround()
     {
         jumpTimeCounter = 0f;
-        //Plays the Wwise audio event with the corresponding string name (arg. 1) on the object (arg. 2).
-        //See my documentation for audio names (This is in progress)
-        landEvent.Post(wwiseCollider);
     }
 
     private void exitedGround()
     {
-        jumpEvent.Post(wwiseCollider);
     }
 
 

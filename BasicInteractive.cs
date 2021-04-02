@@ -9,13 +9,13 @@ public class BasicInteractive : A_Interactive
     //the textgameobject where ever it makes sense
     [Header("Basic Interactive")]
     [SerializeField]
-    private AnimatedTextContainer astroEnterText;
+    private InteractiveActionWrapper astroEnterAction;
     [SerializeField]
-    private AnimatedTextContainer astroExitText;
+    private InteractiveActionWrapper astroExitAction;
     [SerializeField]
-    private AnimatedTextContainer succesfulInteractText;
+    private InteractiveActionWrapper succesfulInteractAction;
     [SerializeField]
-    private AnimatedTextContainer failedInteractText;
+    private InteractiveActionWrapper failedInteractAction;
     [SerializeField]
     protected List<SO_BoolArgument> interactArguments;
     [SerializeField]
@@ -27,10 +27,10 @@ public class BasicInteractive : A_Interactive
 
     protected virtual void Awake()
     {
-        astroEnterText?.OnAwake();
-        astroExitText?.OnAwake();
-        succesfulInteractText?.OnAwake();
-        failedInteractText?.OnAwake();
+        astroEnterAction?.OnAwake();
+        astroExitAction?.OnAwake();
+        succesfulInteractAction?.OnAwake();
+        failedInteractAction?.OnAwake();
     }
 
     //TODO: add an interact queue system in astro like the AstroText system?
@@ -41,11 +41,11 @@ public class BasicInteractive : A_Interactive
     {
         if (!Interacted)
         {
-            TryAnimateText(astroEnterText.AT);
+            TryAction(astroEnterAction);
         }
         else
         {
-            TryAnimateText(succesfulInteractText.AT);
+            TryAction(succesfulInteractAction);
         }
 
         //could and should also work in OnAstroFocus
@@ -54,7 +54,7 @@ public class BasicInteractive : A_Interactive
 
     protected override void OnAstroExit(GameObject astroGO)
     {
-        TryAnimateText(astroExitText.AT);
+        TryAction(astroExitAction);
         if (resetInteractOnExit)
         {
             Interacted = false;
@@ -73,13 +73,13 @@ public class BasicInteractive : A_Interactive
         if (AllInteractArgumentsTrue())
         {
             Interacted = true;
-            TryAnimateText(succesfulInteractText.AT);
+            TryAction(succesfulInteractAction);
             ExecuteAllInteractReactions();
             OnSuccessfulInteract();
         }
         else
         {
-            TryAnimateText(failedInteractText.AT);
+            TryAction(failedInteractAction);
             OnAllInteractArgumentsFalse();
         }
     }
@@ -119,12 +119,15 @@ public class BasicInteractive : A_Interactive
         }
     }
 
-    protected void TryAnimateText(SO_AnimatedText at)
+    protected void TryAction(InteractiveActionWrapper iaw)
     {
-        if (at != null)
+        if (iaw == null)
         {
-            at.StartAnimBasedOnAnchor(this);
+            return;
         }
+
+        iaw.AnimTextCont?.AT?.StartAnimBasedOnAnchor(this);
+        //execute sound event
     }
 
     public override void OnAstroFocus()
