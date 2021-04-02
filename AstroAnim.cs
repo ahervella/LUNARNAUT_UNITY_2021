@@ -17,7 +17,7 @@ public class AstroAnim : MonoBehaviour
     private string animIndex;
     private Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>> animDict = new Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>>();
 
-    private Dictionary<PLAYER_STATE, int[]> footstepSoundDict = new Dictionary<PLAYER_STATE, int[]>()
+    private Dictionary<PLAYER_STATE, int[]> footstepHeelSoundDict = new Dictionary<PLAYER_STATE, int[]>()
     {
         //frames that step happens for RUN anim (first frame = 0)
         {PLAYER_STATE.RUN, new int[]{15, 38} },
@@ -25,14 +25,14 @@ public class AstroAnim : MonoBehaviour
         {PLAYER_STATE.END2, new int[]{6} }
     };
 
-    private Dictionary<PLAYER_STATE, int[]> footburshSoundDict = new Dictionary<PLAYER_STATE, int[]>()
+    private Dictionary<PLAYER_STATE, int[]> footstepToeSoundDict = new Dictionary<PLAYER_STATE, int[]>()
     {
         {PLAYER_STATE.RUN, new int[]{19, 42} },
         {PLAYER_STATE.END1, new int[]{9} },
         {PLAYER_STATE.END2, new int[]{9} }
     };
 
-    private Dictionary<PLAYER_STATE, int[]> footliftSoundDict = new Dictionary<PLAYER_STATE, int[]>()
+    private Dictionary<PLAYER_STATE, int[]> footstepScrapeSoundDict = new Dictionary<PLAYER_STATE, int[]>()
     {
         {PLAYER_STATE.RUN, new int[]{26, 3} }
     };
@@ -84,11 +84,11 @@ public class AstroAnim : MonoBehaviour
     [SerializeField]
     private AK.Wwise.Event landSoundEvent;
     [SerializeField]
-    private AK.Wwise.Event footstepSoundEvent;
+    private AK.Wwise.Event footstepHeelSoundEvent;
     [SerializeField]
-    private AK.Wwise.Event footbrushSoundEvent;
+    private AK.Wwise.Event footstepToeSoundEvent;
     [SerializeField]
-    private AK.Wwise.Event footliftSoundEvent;
+    private AK.Wwise.Event footstepScrapeSoundEvent;
 
     [SerializeField]
     private AK.Wwise.Event suitBeepSoundEvent;
@@ -446,42 +446,42 @@ public class AstroAnim : MonoBehaviour
         Debug.Log(String.Format("CurrAnim = {0}, CurrFrame{1}", currState.ToString(), currFrame));
 
 
-        if (footstepSoundEvent == null)
+        if (footstepHeelSoundEvent == null)
         {
             return;
         }
-        if (!footstepSoundDict.ContainsKey(currState))
+        if (!footstepHeelSoundDict.ContainsKey(currState))
         {
             return;
         }
 
 
-        int[] frames = footstepSoundDict[currState];
+        int[] frames = footstepHeelSoundDict[currState];
         foreach (int frame in frames)
         {
             if (frame == currFrame)
             {
-                footstepSoundEvent.Post(wwiseCollider);
+                footstepHeelSoundEvent.Post(wwiseCollider);
                 return;
             }
         }
 
-        frames = footburshSoundDict[currState];
+        frames = footstepToeSoundDict[currState];
         foreach (int frame in frames)
         {
             if (frame == currFrame)
             {
-                footbrushSoundEvent.Post(wwiseCollider);
+                footstepToeSoundEvent.Post(wwiseCollider);
                 return;
             }
         }
 
-        frames = footliftSoundDict[currState];
+        frames = footstepScrapeSoundDict[currState];
         foreach (int frame in frames)
         {
             if (frame == currFrame)
             {
-                footliftSoundEvent.Post(wwiseCollider);
+                footstepScrapeSoundEvent.Post(wwiseCollider);
                 return;
             }
         }

@@ -29,6 +29,8 @@ public class BI_Door : BasicInteractive
     private AK.Wwise.Event pressurizedSoundEvent;
     [SerializeField]
     private AK.Wwise.Event depressurizedSoundEvent;
+    [SerializeField]
+    private AK.Wwise.Event doorOpenEvent;
 
     private bool astroOnRightSide;
 
@@ -87,25 +89,29 @@ public class BI_Door : BasicInteractive
             return;
         }
 
-        SetPressurization();
+        //SetPressurization();
+        doorOpenEvent.Post(gameObject);
 
         closedColl.enabled = false;
     }
-
+    /*
     private void SetPressurization()
     {
         if (astroOnRightSide)
         {
             if (astroOnRightSide && rightSidePressurized || !astroOnRightSide && leftSidePressurized)
             {
-                //TODO: play pressurized sound and activate pressurized env 
+                pressurizedSoundEvent.Post(gameObject);
             }
             else
             {
-                //TODO: play depressurized sound and activate depressurized env
+                depressurizedSoundEvent.Post(gameObject);
             }
         }
     }
+    */
+
+
 
     protected override void OnAstroExit(GameObject astroGO)
     {
