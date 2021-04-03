@@ -19,16 +19,7 @@ public class BI_Door : BasicInteractive
     private BoxCollider2D closedColl;
     //TODO: custom closedCollider, one way doors...
     //TODO: implement airlock logic
-    [SerializeField]
-    private bool rightSidePressurized = true;
-    [SerializeField]
-    private bool leftSidePressurized = true;
 
-
-    [SerializeField]
-    private AK.Wwise.Event pressurizedSoundEvent;
-    [SerializeField]
-    private AK.Wwise.Event depressurizedSoundEvent;
     [SerializeField]
     private AK.Wwise.Event doorOpenEvent;
 
@@ -89,27 +80,10 @@ public class BI_Door : BasicInteractive
             return;
         }
 
-        //SetPressurization();
         doorOpenEvent.Post(gameObject);
 
         closedColl.enabled = false;
     }
-    /*
-    private void SetPressurization()
-    {
-        if (astroOnRightSide)
-        {
-            if (astroOnRightSide && rightSidePressurized || !astroOnRightSide && leftSidePressurized)
-            {
-                pressurizedSoundEvent.Post(gameObject);
-            }
-            else
-            {
-                depressurizedSoundEvent.Post(gameObject);
-            }
-        }
-    }
-    */
 
 
 

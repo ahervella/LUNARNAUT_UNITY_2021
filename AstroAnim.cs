@@ -247,7 +247,9 @@ public class AstroAnim : MonoBehaviour
     }
 
     private IEnumerator BlinkLoop()
-    {
+    {  
+        yield return new WaitForSeconds(blinkTime);
+
         if (blinkToggle)
         {
             currSuit = blinkOn;
@@ -260,7 +262,7 @@ public class AstroAnim : MonoBehaviour
 
         blinkToggle = !blinkToggle;
         SwitchAnimSuit();
-        yield return new WaitForSeconds(blinkTime);
+
         blinkCR = StartCoroutine(BlinkLoop());
     }
 
@@ -450,41 +452,53 @@ public class AstroAnim : MonoBehaviour
         {
             return;
         }
+
         if (!footstepHeelSoundDict.ContainsKey(currState))
         {
             return;
         }
 
-
-        int[] frames = footstepHeelSoundDict[currState];
-        foreach (int frame in frames)
+        if (footstepHeelSoundDict.ContainsKey(currState))
         {
-            if (frame == currFrame)
+            int[] frames = footstepHeelSoundDict[currState];
+            foreach (int frame in frames)
             {
-                footstepHeelSoundEvent.Post(wwiseCollider);
-                return;
+                if (frame == currFrame)
+                {
+                    footstepHeelSoundEvent.Post(wwiseCollider);
+                    return;
+                }
             }
+
         }
 
-        frames = footstepToeSoundDict[currState];
-        foreach (int frame in frames)
+        if (footstepToeSoundDict.ContainsKey(currState))
         {
-            if (frame == currFrame)
+            int[] frames = footstepToeSoundDict[currState];
+            foreach (int frame in frames)
             {
-                footstepToeSoundEvent.Post(wwiseCollider);
-                return;
+                if (frame == currFrame)
+                {
+                    footstepToeSoundEvent.Post(wwiseCollider);
+                    return;
+                }
             }
         }
+        
+        if (footstepScrapeSoundDict.ContainsKey(currState))
+        {
+            int[] frames = footstepScrapeSoundDict[currState];
+            foreach (int frame in frames)
+            {
+                if (frame == currFrame)
+                {
+                    footstepScrapeSoundEvent.Post(wwiseCollider);
+                    return;
+                }
+            }
 
-        frames = footstepScrapeSoundDict[currState];
-        foreach (int frame in frames)
-        {
-            if (frame == currFrame)
-            {
-                footstepScrapeSoundEvent.Post(wwiseCollider);
-                return;
-            }
         }
+        
     }
 
     private bool GameIsOver()
