@@ -12,6 +12,10 @@ public class InteractiveActionWrapper
     private AK.Wwise.Event soundEvent;
     public AK.Wwise.Event SoundEvent => soundEvent;
 
+    [SerializeField]
+    private float soundDelay;
+    public float SoundDelay => soundDelay;
+
     public void OnAwake()
     {
         AnimTextCont.OnAwake();

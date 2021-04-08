@@ -1,6 +1,9 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+//TODO: make astro anims not react if coming from under platform
 
 public class BI_MovingPlatform : BasicInteractive
 {
@@ -8,6 +11,7 @@ public class BI_MovingPlatform : BasicInteractive
     [SerializeField]
     private bool triggerOnSuccessInteract = true;
 
+    //TODO: disable if all dev tools off
     [SerializeField]
     private KeyCode devToolsMoveHotKey;
 
@@ -16,6 +20,25 @@ public class BI_MovingPlatform : BasicInteractive
 
     [SerializeField]
     private float moveTime = 3f;
+
+    [SerializeField]
+    private SoundOffsetWrapper onMoveStartSound;
+
+    [SerializeField]
+    private SoundOffsetWrapper onMoveEndSound;
+
+    [Serializable]
+    private class SoundOffsetWrapper
+    {
+        [SerializeField]
+        private AK.Wwise.Event soundEvent;
+        public AK.Wwise.Event SoundEvent => soundEvent;
+
+        [SerializeField]
+        private float soundOffset;
+        public float SoundOffset => soundOffset;
+    }
+
     /*
      * implement
     [SerializeField]
@@ -160,6 +183,31 @@ public class BI_MovingPlatform : BasicInteractive
             return;
         }
 
+        if (onMoveStartSound?.SoundEvent != null)
+        {
+            if (onMoveStartSound.SoundOffset < 0)
+            {
+                Debug.LogError(String.Format("On move start sound offset from object {0} and parent object {1} can't be negative!", gameObject.name, transform.parent.gameObject.name));
+            }
+            else
+            {
+                StartCoroutine(DelayPlaySound(onMoveStartSound.SoundOffset, onMoveStartSound.SoundEvent));
+            }
+        }
+
+        if (onMoveEndSound?.SoundEvent != null)
+        {
+            float onEndDelay = moveTime + onMoveEndSound.SoundOffset;
+            if (onEndDelay <= 0)
+            {
+                Debug.LogError(String.Format("On move end sound offset from object {0} and parent object {1} is too small with moveTime!", gameObject.name, transform.parent.gameObject.name));
+            }
+            else
+            {
+                StartCoroutine(DelayPlaySound(onEndDelay, onMoveEndSound.SoundEvent));
+            }
+        }
+        
         currTime = 0f;
     }
 

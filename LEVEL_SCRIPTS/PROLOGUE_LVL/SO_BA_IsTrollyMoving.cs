@@ -5,6 +5,6 @@ public class SO_BA_IsTrollyMoving : SO_BoolArgument
 {
     public override bool IsTrue()
     {
-        return S_LevelArguments.Current.PrologueLvl.TROLLY_MOVING;
+        return S_Global.Current.PrologueLvl.TROLLY_MOVING;
     }
 }

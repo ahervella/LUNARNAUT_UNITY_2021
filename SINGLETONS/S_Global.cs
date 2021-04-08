@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class S_LevelArguments : Singleton<S_LevelArguments>
+public class S_Global : Singleton<S_Global>
 {
     //TODO: make these level classes scriptable objects for singelton in scene? [SerializeField]
     //TODO: integrate a sort of default and testing section for these so we can easily test level for real

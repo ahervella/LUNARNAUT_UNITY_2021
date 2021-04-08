@@ -5,7 +5,8 @@ public class SO_RA_MarkTrollyMoving : SO_Reaction
 {
     public override void Execute()
     {
-        S_LevelArguments.Current.PrologueLvl.TROLLY_MOVING = true;
+        S_Global.Current.PrologueLvl.TROLLY_MOVING = true;
+        S_AstroInputManager.Current.ControlsEnabled = false;
         Debug.Log("Trolly Started Moving");
     }
 }

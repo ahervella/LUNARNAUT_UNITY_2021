@@ -445,7 +445,8 @@ public class AstroAnim : MonoBehaviour
         }
 
         lastFramedPlayed = currFrame;
-        Debug.Log(String.Format("CurrAnim = {0}, CurrFrame{1}", currState.ToString(), currFrame));
+        //TODO: hook this up in dev tools
+        //Debug.Log(String.Format("CurrAnim = {0}, CurrFrame{1}", currState.ToString(), currFrame));
 
 
         if (footstepHeelSoundEvent == null)

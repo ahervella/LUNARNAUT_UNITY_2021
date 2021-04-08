@@ -21,9 +21,31 @@ public class BasicInteractive : A_Interactive
     [SerializeField]
     protected List<SO_Reaction> interactReactions;
     [SerializeField]
+    protected List<SO_Reaction> astroEnterReactions;
+    [SerializeField]
+    protected List<SO_Reaction> astroExitReactions;
+    [SerializeField]
+    private bool oneTimeInteract = true;
+    [SerializeField]
     private bool resetInteractOnExit = false;
 
-    protected bool Interacted { get; private set; } = false;
+    private bool interacted = false;
+    protected bool Interacted
+    {
+        get
+        {
+            if (!oneTimeInteract)
+            {
+                return false;
+            }
+
+            return interacted;
+        }
+
+        set { interacted = value; }
+    }
+
+    protected bool EnteredWasTriggered { get; private set; } = false;
 
     protected virtual void Awake()
     {
@@ -41,12 +63,16 @@ public class BasicInteractive : A_Interactive
     {
         if (!Interacted)
         {
+            EnteredWasTriggered = true;
             TryAction(astroEnterAction);
+            ExecuteAllReactions(astroEnterReactions);
         }
-        else
+        //TODO: else play only text
+
+        /*else
         {
             TryAction(succesfulInteractAction);
-        }
+        }*/
 
         //could and should also work in OnAstroFocus
         //S_AstroInteractiveQueue.Current.QueueInteractiveText(this, astroEnterText);
@@ -54,7 +80,15 @@ public class BasicInteractive : A_Interactive
 
     protected override void OnAstroExit(GameObject astroGO)
     {
+        if (!EnteredWasTriggered)
+        {
+            EnteredWasTriggered = false;
+            return;
+        }
+
         TryAction(astroExitAction);
+
+        ExecuteAllReactions(astroExitReactions);
         if (resetInteractOnExit)
         {
             Interacted = false;
@@ -74,7 +108,7 @@ public class BasicInteractive : A_Interactive
         {
             Interacted = true;
             TryAction(succesfulInteractAction);
-            ExecuteAllInteractReactions();
+            ExecuteAllReactions(interactReactions);
             OnSuccessfulInteract();
         }
         else
@@ -106,16 +140,16 @@ public class BasicInteractive : A_Interactive
         return true;
     }
 
-    protected void ExecuteAllInteractReactions()
+    protected void ExecuteAllReactions(List<SO_Reaction> reactions)
     {
-        if (interactReactions == null)
+        if (reactions == null)
         {
             return;
         }
 
-        foreach (SO_Reaction reaction in interactReactions)
+        foreach (SO_Reaction ra in reactions)
         {
-            reaction.Execute();
+            ra.Execute();
         }
     }
 
@@ -126,8 +160,18 @@ public class BasicInteractive : A_Interactive
             return;
         }
 
+        if (iaw.SoundEvent != null)
+        {
+            StartCoroutine(DelayPlaySound(iaw.SoundDelay, iaw.SoundEvent));
+        }
+
         iaw.AnimTextCont?.AT?.StartAnimBasedOnAnchor(this);
-        //execute sound event
+    }
+
+    protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent)
+    {
+        yield return new WaitForSeconds(delay);
+        soundEvent.Post(gameObject);
     }
 
     public override void OnAstroFocus()

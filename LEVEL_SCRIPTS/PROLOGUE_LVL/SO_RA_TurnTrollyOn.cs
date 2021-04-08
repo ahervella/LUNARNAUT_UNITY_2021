@@ -5,7 +5,7 @@ public class SO_RA_TurnTrollyOn : SO_Reaction
 {
     public override void Execute()
     {
-        S_LevelArguments.Current.PrologueLvl.TROLLY_POWERED_ON = true;
+        S_Global.Current.PrologueLvl.TROLLY_POWERED_ON = true;
         Debug.Log("Turned on trolly power");
     }
 }

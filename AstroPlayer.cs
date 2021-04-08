@@ -105,6 +105,9 @@ public class AstroPlayer : MonoBehaviour
         S_DeveloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
+
+        S_AstroInputManager.Current.ControlsEnabledChanged -= S_AstroInputManager_ControlsEnabeldChanged;
+        S_AstroInputManager.Current.ControlsEnabledChanged += S_AstroInputManager_ControlsEnabeldChanged;
     }
 
     /// <summary>
@@ -193,6 +196,25 @@ public class AstroPlayer : MonoBehaviour
     }
     #endregion
 
+
+    #region INPUT_MANAGER
+
+    private bool INPUT_controlsEnabled = true;
+    private void S_AstroInputManager_ControlsEnabeldChanged()
+    {
+        INPUT_controlsEnabled = S_AstroInputManager.Current.ControlsEnabled;
+
+        lock (_inputLock)
+        {
+            jumping = false;
+            leftInput_STATE = false;
+            rightInput_STATE = false;
+        }
+    }
+
+    #endregion
+
+
     private void Start()
     {
         //TODO:impelemnt this shit in the project settings
@@ -262,7 +284,12 @@ public class AstroPlayer : MonoBehaviour
     #region Input Management
     private void InputUpdate()
     {
-        lock (_lock)
+        if (!INPUT_controlsEnabled)
+        {
+            return;
+        }
+
+        lock (_inputLock)
         {
             KeyUpdate(JUMP_INPUT_KEY, true, ref jumpInput_DOWN);
             KeyUpdate(JUMP_INPUT_KEY, false, ref jumpInput_UP);
@@ -309,7 +336,7 @@ public class AstroPlayer : MonoBehaviour
             }
         }
     }
-    private readonly object _lock = new object();
+    private readonly object _inputLock = new object();
     private void InputFixedUpdate()
     {
         //do this here to make sure we don't skip one frame presses
@@ -318,7 +345,7 @@ public class AstroPlayer : MonoBehaviour
         //need to wrap in a lock so we don't have to use a lock
         //because update could change the value of jumpInput_DOWN to true
         //in between lines
-        lock (_lock)
+        lock (_inputLock)
         {
             bool jumpInputDown = false;
             if (jumpInput_DOWN)
