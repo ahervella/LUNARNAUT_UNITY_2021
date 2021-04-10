@@ -21,6 +21,11 @@ public class BI_MovingPlatform : BasicInteractive
     [SerializeField]
     private float moveTime = 3f;
 
+    [Header("Audio Parameters")]
+
+    [SerializeField]
+    private GameObject wwiseSoundObject;
+
     [SerializeField]
     private SoundOffsetWrapper onMoveStartSound;
 
@@ -30,6 +35,7 @@ public class BI_MovingPlatform : BasicInteractive
     [Serializable]
     private class SoundOffsetWrapper
     {
+
         [SerializeField]
         private AK.Wwise.Event soundEvent;
         public AK.Wwise.Event SoundEvent => soundEvent;
@@ -191,7 +197,8 @@ public class BI_MovingPlatform : BasicInteractive
             }
             else
             {
-                StartCoroutine(DelayPlaySound(onMoveStartSound.SoundOffset, onMoveStartSound.SoundEvent));
+                //THE SOUND OBJECT NEEDS TO BE THE SAME FOR THE START AND STOP IN ORDER FOR THE STOP TO WORK IN WWISE
+                StartCoroutine(DelayPlaySound(onMoveStartSound.SoundOffset, onMoveStartSound.SoundEvent, wwiseSoundObject));
             }
         }
 
@@ -204,7 +211,7 @@ public class BI_MovingPlatform : BasicInteractive
             }
             else
             {
-                StartCoroutine(DelayPlaySound(onEndDelay, onMoveEndSound.SoundEvent));
+                StartCoroutine(DelayPlaySound(onEndDelay, onMoveEndSound.SoundEvent, wwiseSoundObject));
             }
         }
         

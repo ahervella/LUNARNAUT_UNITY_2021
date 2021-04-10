@@ -168,10 +168,16 @@ public class BasicInteractive : A_Interactive
         iaw.AnimTextCont?.AT?.StartAnimBasedOnAnchor(this);
     }
 
-    protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent)
+    protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent, GameObject soundObject = null)
     {
         yield return new WaitForSeconds(delay);
-        soundEvent.Post(gameObject);
+
+        if (soundObject == null)
+        {
+            soundObject = gameObject;
+        }
+
+        soundEvent.Post(soundObject);
     }
 
     public override void OnAstroFocus()
