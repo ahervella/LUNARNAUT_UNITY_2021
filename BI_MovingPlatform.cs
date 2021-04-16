@@ -24,7 +24,7 @@ public class BI_MovingPlatform : BasicInteractive
     [Header("Audio Parameters")]
 
     [SerializeField]
-    private GameObject wwiseSoundObject;
+    private GameObject platform3DSource;
 
     [SerializeField]
     private SoundOffsetWrapper onMoveStartSound;
@@ -198,7 +198,7 @@ public class BI_MovingPlatform : BasicInteractive
             else
             {
                 //THE SOUND OBJECT NEEDS TO BE THE SAME FOR THE START AND STOP IN ORDER FOR THE STOP TO WORK IN WWISE
-                StartCoroutine(DelayPlaySound(onMoveStartSound.SoundOffset, onMoveStartSound.SoundEvent, wwiseSoundObject));
+                StartCoroutine(DelayPlaySound(onMoveStartSound.SoundOffset, onMoveStartSound.SoundEvent));
             }
         }
 
@@ -209,15 +209,27 @@ public class BI_MovingPlatform : BasicInteractive
             {
                 Debug.LogError(String.Format("On move end sound offset from object {0} and parent object {1} is too small with moveTime!", gameObject.name, transform.parent.gameObject.name));
             }
+
             else
             {
-                StartCoroutine(DelayPlaySound(onEndDelay, onMoveEndSound.SoundEvent, wwiseSoundObject));
+                StartCoroutine(DelayPlaySound(onEndDelay, onMoveEndSound.SoundEvent));
             }
         }
         
         currTime = 0f;
     }
 
+    protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (platform3DSource == null)
+        {
+            Debug.LogError(String.Format("No sound source obj specified for: {0} from class: {1}", soundEvent, this));
+        }
+
+        soundEvent.Post(platform3DSource);
+    }
 
     private void FixedUpdate()
     {

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -64,7 +65,7 @@ public class BasicInteractive : A_Interactive
         if (!Interacted)
         {
             EnteredWasTriggered = true;
-            TryAction(astroEnterAction);
+            astroEnterAction.TryCompleteAction(this);
             ExecuteAllReactions(astroEnterReactions);
         }
         //TODO: else play only text
@@ -86,7 +87,7 @@ public class BasicInteractive : A_Interactive
             return;
         }
 
-        TryAction(astroExitAction);
+        astroExitAction.TryCompleteAction(this);
 
         ExecuteAllReactions(astroExitReactions);
         if (resetInteractOnExit)
@@ -107,13 +108,13 @@ public class BasicInteractive : A_Interactive
         if (AllInteractArgumentsTrue())
         {
             Interacted = true;
-            TryAction(succesfulInteractAction);
+            succesfulInteractAction.TryCompleteAction(this);
             ExecuteAllReactions(interactReactions);
             OnSuccessfulInteract();
         }
         else
         {
-            TryAction(failedInteractAction);
+            failedInteractAction.TryCompleteAction(this);
             OnAllInteractArgumentsFalse();
         }
     }
@@ -152,7 +153,7 @@ public class BasicInteractive : A_Interactive
             ra.Execute();
         }
     }
-
+    /*
     protected void TryAction(InteractiveActionWrapper iaw)
     {
         if (iaw == null)
@@ -167,7 +168,7 @@ public class BasicInteractive : A_Interactive
 
         iaw.AnimTextCont?.AT?.StartAnimBasedOnAnchor(this);
     }
-
+    
     protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent, GameObject soundObject = null)
     {
         yield return new WaitForSeconds(delay);
@@ -179,6 +180,7 @@ public class BasicInteractive : A_Interactive
 
         soundEvent.Post(soundObject);
     }
+    */
 
     public override void OnAstroFocus()
     {

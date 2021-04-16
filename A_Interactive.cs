@@ -2,13 +2,27 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(Collider2D))]
+//[RequireComponent(typeof(Collider2D))]
 public abstract class A_Interactive : MonoBehaviour
 {
     private const string ASTRO_TAG = "ASTRO";
     private const KeyCode INTERACT_KEY = KeyCode.E;
     private bool astroInArea = false;
 
+    //USED FOR WWISE COLLIDERS WHICH ARE 3D
+    private void OnTriggerEnter(Collider collision) 
+    {
+        if (collision.CompareTag(ASTRO_TAG))
+        {
+            //This order is important for the interactive system work properly
+            //if we are queueing texts in OnAstroEnter
+            S_AstroInteractiveQueue.Current.AddInteractive(this);
+            OnAstroEnter(collision.gameObject);
+            astroInArea = true;
+        }
+    }
+
+    //USED FOR GENERAL PURPOSES IN 2D
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag(ASTRO_TAG))
@@ -21,6 +35,7 @@ public abstract class A_Interactive : MonoBehaviour
         }
     }
 
+    //USED FOR GENERAL PURPOSES IN 2D
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.CompareTag(ASTRO_TAG))
@@ -35,6 +50,19 @@ public abstract class A_Interactive : MonoBehaviour
             {
                 OnReleaseInteract();
             }
+        }
+    }
+
+    //USED FOR WWISE COLLIDERS WHICH ARE 3D
+    private void OnTriggerExit(Collider collision)
+    {
+        if (collision.CompareTag(ASTRO_TAG))
+        {
+            //This order is important for the interactive system work properly
+            //if we are queueing texts in OnAstroEnter
+            S_AstroInteractiveQueue.Current.AddInteractive(this);
+            OnAstroEnter(collision.gameObject);
+            astroInArea = true;
         }
     }
 
