@@ -442,7 +442,7 @@ public class AstroAnim : MonoBehaviour
     {
 
         int currFrame = GetCurrFrame(animDict[currSuit][currState], anim);
-        Debug.LogFormat("The current Astro frame: {0}", currFrame);
+        //Debug.LogFormat("The current Astro frame: {0}", currFrame);
 
         if (lastFramedPlayed == currFrame)
         {
