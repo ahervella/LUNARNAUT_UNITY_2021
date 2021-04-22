@@ -12,5 +12,12 @@ public class S_Global : Singleton<S_Global>
     {
         public bool TROLLY_POWERED_ON = false;
         public bool TROLLY_MOVING = false;
+
+        public bool MIND_LAB_POWER_ON = false;
+        public bool MIND_LAB_MACHINE_ON = false;
+        public bool MIND_LAB_CHAIR_ACTIVATED = false;
     }
+
+    //temp ime travel bool
+    public bool IN_PAST = false;
 }

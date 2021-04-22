@@ -17,6 +17,21 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
         }
     }
 
+    public enum DEV_TIME_PERIOD { NONE, FUTURE, PAST}
+
+    [SerializeField, GetSet("DevTimePeriod")]
+    private DEV_TIME_PERIOD devTimePeriod = DEV_TIME_PERIOD.NONE;
+    public event System.Action DevToolsTimePeriodChanged = delegate { };
+    public DEV_TIME_PERIOD DevTimePeriod
+    {
+        get => devTimePeriod;
+        set
+        {
+            devTimePeriod = value;
+            DevToolsTimePeriodChanged();
+        }
+    }
+
     #region ASTRO_PLAYER
     public bool DevToolsEnabled_ASTRO_PLAYER()
     {

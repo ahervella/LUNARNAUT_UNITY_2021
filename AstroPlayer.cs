@@ -38,6 +38,7 @@ public class AstroPlayer : MonoBehaviour
     private readonly KeyCode[] JUMP_INPUT_KEY = { KeyCode.UpArrow, KeyCode.W, KeyCode.Space };
     private readonly KeyCode[] RIGHT_INPUT_KEY = { KeyCode.RightArrow, KeyCode.D };
     private readonly KeyCode[] LEFT_INPUT_KEY = { KeyCode.LeftArrow, KeyCode.A };
+    private readonly KeyCode[] TIME_TRAVEL_KEY = { KeyCode.Q };
 
     private bool jumpInput_DOWN = false;
     private bool jumpInput_UP = false;
@@ -49,6 +50,12 @@ public class AstroPlayer : MonoBehaviour
     private bool leftInput_DOWN = false;
     private bool leftInput_UP = false;
     private bool leftInput_STATE = false;
+
+    private bool timeTravelInput_DOWN = false;
+
+    private SO_RA_GoToFuture goToFuture;
+    private SO_RA_GoToPast goToPast;
+    private SO_BA_InFuture inFuture;
 
     private Rigidbody2D rb;
 
@@ -291,14 +298,17 @@ public class AstroPlayer : MonoBehaviour
 
         lock (_inputLock)
         {
-            KeyUpdate(JUMP_INPUT_KEY, true, ref jumpInput_DOWN);
-            KeyUpdate(JUMP_INPUT_KEY, false, ref jumpInput_UP);
+            KeyUpdate(JUMP_INPUT_KEY, readDown: true, ref jumpInput_DOWN);
+            KeyUpdate(JUMP_INPUT_KEY, readDown: false, ref jumpInput_UP);
 
-            KeyUpdate(RIGHT_INPUT_KEY, true, ref rightInput_DOWN);
-            KeyUpdate(RIGHT_INPUT_KEY, false, ref rightInput_UP);
+            KeyUpdate(RIGHT_INPUT_KEY, readDown: true, ref rightInput_DOWN);
+            KeyUpdate(RIGHT_INPUT_KEY, readDown: false, ref rightInput_UP);
 
-            KeyUpdate(LEFT_INPUT_KEY, true, ref leftInput_DOWN);
-            KeyUpdate(LEFT_INPUT_KEY, false, ref leftInput_UP);
+            KeyUpdate(LEFT_INPUT_KEY, readDown: true, ref leftInput_DOWN);
+            KeyUpdate(LEFT_INPUT_KEY, readDown: false, ref leftInput_UP);
+
+            KeyUpdate(TIME_TRAVEL_KEY, readDown: true, ref timeTravelInput_DOWN);
+
         }
 
     }
@@ -403,6 +413,20 @@ public class AstroPlayer : MonoBehaviour
             if (leftInput_STATE)
             {
                 horizDirectoin--;
+            }
+
+            if (timeTravelInput_DOWN)
+            {
+                if (inFuture.IsTrue())
+                {
+                    goToPast.Execute();
+                }
+                else
+                {
+                    goToFuture.Execute();
+                }
+
+                timeTravelInput_DOWN = false;
             }
         }
         
