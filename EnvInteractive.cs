@@ -53,6 +53,7 @@ public class EnvInteractive : A_Interactive
 
     protected override void OnAstroEnter(GameObject astroGO)
     {
+        //Wwise Events which aren't specified are not null, but their names are empty strings.
         if (enterEvent.Name != "")
         {
             enterEvent.Post(gameObject);
@@ -68,6 +69,8 @@ public class EnvInteractive : A_Interactive
         }
         else
         {
+            //Not having a pressure event is not error, but a special case
+            //Used for rooms which can be either pressurized or not like airlock hallways
             Debug.LogFormat("Wwise Environment ' {0} ' had no pressureEvent specified", gameObject.name);
         }
 
