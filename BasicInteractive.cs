@@ -153,34 +153,6 @@ public class BasicInteractive : A_Interactive
             ra.Execute();
         }
     }
-    /*
-    protected void TryAction(InteractiveActionWrapper iaw)
-    {
-        if (iaw == null)
-        {
-            return;
-        }
-
-        if (iaw.SoundEvent != null)
-        {
-            StartCoroutine(DelayPlaySound(iaw.SoundDelay, iaw.SoundEvent));
-        }
-
-        iaw.AnimTextCont?.AT?.StartAnimBasedOnAnchor(this);
-    }
-    
-    protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent, GameObject soundObject = null)
-    {
-        yield return new WaitForSeconds(delay);
-
-        if (soundObject == null)
-        {
-            soundObject = gameObject;
-        }
-
-        soundEvent.Post(soundObject);
-    }
-    */
 
     public override void OnAstroFocus()
     {

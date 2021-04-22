@@ -9,6 +9,10 @@ public abstract class A_Interactive : MonoBehaviour
     private const KeyCode INTERACT_KEY = KeyCode.E;
     private bool astroInArea = false;
 
+    [SerializeField]
+    private GameObject audio3DSource;
+    public GameObject Audio3DSource => audio3DSource;
+
     //USED FOR WWISE COLLIDERS WHICH ARE 3D
     private void OnTriggerEnter(Collider collision)
     {

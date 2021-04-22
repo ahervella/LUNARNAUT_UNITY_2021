@@ -53,7 +53,7 @@ public class EnvInteractive : A_Interactive
 
     protected override void OnAstroEnter(GameObject astroGO)
     {
-        if (enterEvent != null)
+        if (enterEvent.Name != "")
         {
             enterEvent.Post(gameObject);
         }
@@ -62,13 +62,13 @@ public class EnvInteractive : A_Interactive
             Debug.LogErrorFormat("Wwise Environment ' {0} ' had no enterEvent specified", gameObject.name);
         }
 
-        if (pressureEvent != null)
+        if (pressureEvent.Name != "")
         {
             pressureEvent.Post(gameObject);
         }
         else
         {
-            Debug.LogErrorFormat("Wwise Environment ' {0} ' had no pressureEvent specified", gameObject.name);
+            Debug.LogFormat("Wwise Environment ' {0} ' had no pressureEvent specified", gameObject.name);
         }
 
         foreach (EmitterSourceListElement esle in emitterSourceList)
@@ -79,7 +79,7 @@ public class EnvInteractive : A_Interactive
 
     protected override void OnAstroExit(GameObject astroGO)
     {
-        if (exitEvent != null)
+        if (exitEvent.Name != "")
         {
             exitEvent.Post(gameObject);
         }

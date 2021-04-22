@@ -26,8 +26,8 @@ public class InteractiveActionWrapper
         public EmitterSource OtherEmitter => otherEmitter;
 
         [SerializeField]
-        private float delayTime = 0;
-        public float DelayTime => delayTime;
+        private float soundDelay = 0;
+        public float SoundDelay => soundDelay;
     }
 
     [SerializeField]
@@ -39,22 +39,26 @@ public class InteractiveActionWrapper
         AnimTextCont.OnAwake();
     }
 
-    public void TrySoundEvent(MonoBehaviour sourceObjMono)
+    public void TrySoundEvent(A_Interactive aint)
     {
-        if (SoundEvent != null)
+        if (SoundEvent.Name != "")
         {
-            sourceObjMono.StartCoroutine(DelayPlaySound(SoundDelay, SoundEvent, sourceObjMono.gameObject));
+            if (aint.Audio3DSource == null)
+            {
+                aint.StartCoroutine(DelayPlaySound(soundDelay, SoundEvent, aint.gameObject));
+            }
+            else
+            {
+                aint.StartCoroutine(DelayPlaySound(soundDelay, SoundEvent, aint.Audio3DSource));
+            }
         }
     }
 
     public void TryOtherEmitters(MonoBehaviour sourceObjMono)
     {
-        if (EmitterContainers != null)
+        foreach (EmitterContainer emitc in EmitterContainers)
         {
-            foreach (EmitterContainer emitc in EmitterContainers)
-            {
-                sourceObjMono.StartCoroutine(DelayPlaySound(emitc.DelayTime, emitc.OtherEmitter.SoundEvent, emitc.OtherEmitter.gameObject));
-            }
+            sourceObjMono.StartCoroutine(DelayPlaySound(emitc.SoundDelay, emitc.OtherEmitter.SoundEvent, emitc.OtherEmitter.gameObject));
         }
     }
 

@@ -80,7 +80,7 @@ public class BI_Door : BasicInteractive
             return;
         }
 
-        doorOpenEvent.Post(gameObject);
+        doorOpenEvent.Post(Audio3DSource);
 
         closedColl.enabled = false;
     }

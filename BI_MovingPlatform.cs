@@ -35,7 +35,6 @@ public class BI_MovingPlatform : BasicInteractive
     [Serializable]
     private class SoundOffsetWrapper
     {
-
         [SerializeField]
         private AK.Wwise.Event soundEvent;
         public AK.Wwise.Event SoundEvent => soundEvent;
