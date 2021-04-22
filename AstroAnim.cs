@@ -412,6 +412,11 @@ public class AstroAnim : MonoBehaviour
         {
             DefaultInitAction(PLAYER_STATE.FALL);
         }
+        else if (!falling && currState != PLAYER_STATE.JUMP)
+        {
+            DefaultInitAction(PLAYER_STATE.JUMP);
+            jumpSoundEvent.Post(wwiseCollider);
+        }
     }
 
     private void UpdateOrientation()
@@ -436,8 +441,8 @@ public class AstroAnim : MonoBehaviour
     private void UpdatePlayFootstepSound()
     {
 
-        int currFrame = GetCurrFrame(animDict[currSuit][PLAYER_STATE.RUN], anim);
-
+        int currFrame = GetCurrFrame(animDict[currSuit][currState], anim);
+        Debug.LogFormat("The current Astro frame: {0}", currFrame);
 
         if (lastFramedPlayed == currFrame)
         {
@@ -562,13 +567,17 @@ public class AstroAnim : MonoBehaviour
             return;
         }
         AnimationClip ac = animDict[currSuit][currState];
-        switchAnimCR =  StartCoroutine(SwitchAnim(currState, GetCurrFrame(ac, anim), true, ac));
+        switchAnimCR =  StartCoroutine(SwitchAnim(currState, -1, true, ac, true));
 
     }
 
-    IEnumerator SwitchAnim(PLAYER_STATE state, int startFrame = 0, bool isSuitUpdate = false, AnimationClip ac = null)
+    IEnumerator SwitchAnim(PLAYER_STATE state, int startFrame = 0, bool isSuitUpdate = false, AnimationClip ac = null, bool continueOnSameFrame = false)
     {
-        
+
+
+        //fuccccck this was such a bitch, need this specifically end of frame
+        //or else playing from 0 wont happen at the same time as changing anim
+        yield return new WaitForEndOfFrame();
 
         if (!isSuitUpdate)
         {
@@ -577,15 +586,12 @@ public class AstroAnim : MonoBehaviour
         }
         
         int currHashState = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
-        float startNormTime = GetNormTimeFromFrame(ac, anim, startFrame);
-
-
+        
 
         if (DEVTOOLS_printAstroAnims) { Debug.Log(state.ToString()); }
 
-        //fuccccck this was such a bitch, need this specifically end of frame
-        //or else playing from 0 wont happen at the same time as changing anim
-        yield return new WaitForEndOfFrame();
+        //We do not do % 1 on time here so that we can notice when we're not setting animations to loop on ones we expect to (for debugging)
+        float startNormTime = continueOnSameFrame ? anim.GetCurrentAnimatorStateInfo(0).normalizedTime : GetNormTimeFromFrame(ac, anim, startFrame);
         anim.Play(currHashState, 0, startNormTime);
         animOC[animIndex] = ac;
         switchAnimCR = null;
@@ -596,7 +602,8 @@ public class AstroAnim : MonoBehaviour
 
     private int GetCurrFrame(AnimationClip animClip, Animator animator)
     {
-        float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+        //modulos b/c integer part of nubmer represents number of loops, float percent of loop
+        float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime % 1;
         float animLength = animClip.length;
         float animFrameRate = animClip.frameRate;
         //need to round up to get the frame it's currently on (ex. time 0 = frame 1)
@@ -610,8 +617,6 @@ public class AstroAnim : MonoBehaviour
 
     float GetNormTimeFromFrame(AnimationClip animClip, Animator animator, int frame)
     {
-        //modulos b/c integer part of nubmer represents number of loops, float percent of loop
-        float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime % 1;
         float animLength = animClip.length;
         float animFrameRate = animClip.frameRate;
         //Minus 1 so that frame 1 lets start at time 0
