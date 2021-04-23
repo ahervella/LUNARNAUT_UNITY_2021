@@ -5,12 +5,7 @@ public class SO_RA_GoToFuture : SO_Reaction
 {
     public override void Execute()
     {
-        if (!S_Global.Current.IN_PAST)
-        {
-            Debug.Log("Tried to travel to the future, but we are here, in the future!");
-            return;
-        }
-        S_Global.Current.IN_PAST = false;
-        Debug.Log("Time traveling to the future...");
+        Debug.Log("Attempting to time traveling to the future...");
+        S_TimeTravel.Current.Timeline = S_TimeTravel.TIME_PERIOD.FUTURE;
     }
 }

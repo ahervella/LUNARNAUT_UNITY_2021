@@ -97,7 +97,6 @@ public class BI_MovingPlatform : BasicInteractive
     private float currARotation;
     private float currBRotation;
 
-
     protected override void Awake()
     {
         base.Awake();
@@ -183,7 +182,7 @@ public class BI_MovingPlatform : BasicInteractive
         }
 
         //if in progress, don't interrupt
-        if (currTime != 1f)
+        if (TweenInProgress())
         {
             return;
         }
@@ -216,6 +215,12 @@ public class BI_MovingPlatform : BasicInteractive
         }
         
         currTime = 0f;
+    }
+
+    protected bool TweenInProgress()
+    {
+        //if in progress, don't interrupt
+        return currTime != 1f;
     }
 
     protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent)
@@ -319,5 +324,51 @@ public class BI_MovingPlatform : BasicInteractive
         }
 
         return false;
+    }
+
+
+    public class MovingPlatformTTD : ITimeTravelData
+    {
+        public Vector2 APoint;
+        public Vector2 BPoint;
+
+        public float ARotation;
+        public float BRotation;
+    }
+
+    public override void ComposeTimeTravelData(ref ITimeTravelData data)
+    {
+        MovingPlatformTTD specifiedData = new MovingPlatformTTD();
+
+        //if not null, means a subclass passed us an ITTD with data
+        if (data != null)
+        {
+            if (!TryToCastTimeTravelData(ref specifiedData, data))
+            {
+                //will spitout error in that ^^method, lets just return;
+                return;
+            }
+        }
+
+
+        if (TweenInProgress())
+        {
+            specifiedData.APoint = currBPoint;
+            specifiedData.BPoint = currAPoint;
+
+            specifiedData.ARotation = currBRotation;
+            specifiedData.BRotation = currARotation;
+        }
+        else
+        {
+            specifiedData.APoint = currAPoint;
+            specifiedData.BPoint = currBPoint;
+
+            specifiedData.ARotation = currARotation;
+            specifiedData.BRotation = currBRotation;
+        }
+
+        data = specifiedData;
+        base.ComposeTimeTravelData(ref data);
     }
 }

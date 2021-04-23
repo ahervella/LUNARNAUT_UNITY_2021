@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class TimeTravelContainer : MonoBehaviour
 {
-    private SO_BA_InPast inPast;
-
     [SerializeField]
     private A_Interactive futureInteractive;
     [SerializeField]
@@ -22,24 +20,41 @@ public class TimeTravelContainer : MonoBehaviour
 
     private void Awake()
     {
-        
+        S_TimeTravel.Current.TimelineChanged -= S_TimeTravel_TimelineChanged;
+        S_TimeTravel.Current.TimelineChanged += S_TimeTravel_TimelineChanged;
+
+        if (futureInteractive == null && pastInteractive == null)
+        {
+            return;
+        }
+
+        if (futureInteractive?.GetType() != pastInteractive?.GetType())
+        {
+            Debug.LogErrorFormat("TimeTravelContainer on object {0} does not have the same type A_Interactive for the past and future :(", gameObject.name);
+        }
     }
 
     private void Start()
     {
-        if (inPast.IsTrue())
+        if (S_TimeTravel.Current.InPast())
         {
             if (AllBoolArgsTrue(extraPastArgs))
             {
                 SetEnableAllObjects(ref pastObjects, true);
-                SetEnableAllObjects(ref futureObjects, false);
             }
+
+            SetEnableAllObjects(ref futureObjects, false);
         }
-        else if (AllBoolArgsTrue(extraFutureArgs))
+        else
         {
+            if (AllBoolArgsTrue(extraFutureArgs))
+            {
+
+                SetEnableAllObjects(ref futureObjects, true);
+            }
             SetEnableAllObjects(ref pastObjects, false);
-            SetEnableAllObjects(ref futureObjects, true);
         }
+
     }
 
     private bool AllBoolArgsTrue(List<SO_BoolArgument> boolArgs)
@@ -60,6 +75,16 @@ public class TimeTravelContainer : MonoBehaviour
         foreach(GameObject obj in objs)
         {
             obj.SetActive(enableVal);
+        }
+    }
+
+    private void S_TimeTravel_TimelineChanged()
+    {
+        if (S_TimeTravel.Current.InFuture())
+        {
+            ITimeTravelData blah = null;
+            pastInteractive.ComposeTimeTravelData(ref blah);
+            futureInteractive.ParseTimeTravelData(blah);
         }
     }
 }

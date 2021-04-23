@@ -88,6 +88,26 @@ public abstract class A_Interactive : MonoBehaviour
         }
     }
 
+
+    protected bool TryToCastTimeTravelData<T>(ref T castedVar, ITimeTravelData ittData)
+    {
+        if (ittData is T)
+        {
+            castedVar = (T)ittData;
+            return true;
+        }
+        Debug.LogErrorFormat("The ITimeTravelData could not be composed because there is a type mismatch with {0} and {1} on object: {2}", typeof(T).FullName, ittData.GetType().FullName, gameObject.name);
+        return false;
+    }
+
+    public virtual void ComposeTimeTravelData(ref ITimeTravelData passedData)
+    {
+    }
+
+    public virtual void ParseTimeTravelData(ITimeTravelData data)
+    {
+    }
+
     /// <summary>
     /// When astro player enters this interactive's area
     /// </summary>
