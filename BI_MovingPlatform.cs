@@ -292,10 +292,7 @@ public class BI_MovingPlatform : BasicInteractive
 
         if (currTime >= 1f)
         {
-            currTime = 1f;
-            movingPlatform.position = currBPoint;
-            movingPlatform.rotation = Quaternion.Euler(0, 0, currBRotation);
-            GetNextWP();
+            ImmediatelyMovePlatformToDest();
             return;
         }
 
@@ -313,6 +310,14 @@ public class BI_MovingPlatform : BasicInteractive
 
         movingPlatform.position = Vector2.Lerp(currAPoint, currBPoint, localTimeStep);
         movingPlatform.rotation = Quaternion.Euler(0, 0, Mathf.LerpAngle(currARotation, currBRotation, localTimeStep));
+    }
+
+    private void ImmediatelyMovePlatformToDest()
+    {
+        currTime = 1f;
+        movingPlatform.position = currBPoint;
+        movingPlatform.rotation = Quaternion.Euler(0, 0, currBRotation);
+        GetNextWP();
     }
 
     private bool ErrorCheckForWayPointsSize()
@@ -336,39 +341,41 @@ public class BI_MovingPlatform : BasicInteractive
         public float BRotation;
     }
 
-    public override void ComposeTimeTravelData(ref ITimeTravelData data)
+    protected override ITimeTravelData ComposeNewTTD()
     {
         MovingPlatformTTD specifiedData = new MovingPlatformTTD();
-
-        //if not null, means a subclass passed us an ITTD with data
-        if (data != null)
-        {
-            if (!TryToCastTimeTravelData(ref specifiedData, data))
-            {
-                //will spitout error in that ^^method, lets just return;
-                return;
-            }
-        }
-
-
         if (TweenInProgress())
         {
-            specifiedData.APoint = currBPoint;
-            specifiedData.BPoint = currAPoint;
-
-            specifiedData.ARotation = currBRotation;
-            specifiedData.BRotation = currARotation;
-        }
-        else
-        {
-            specifiedData.APoint = currAPoint;
-            specifiedData.BPoint = currBPoint;
-
-            specifiedData.ARotation = currARotation;
-            specifiedData.BRotation = currBRotation;
+            ImmediatelyMovePlatformToDest();
         }
 
-        data = specifiedData;
-        base.ComposeTimeTravelData(ref data);
+        specifiedData.APoint = currAPoint;
+        specifiedData.BPoint = currBPoint;
+
+        specifiedData.ARotation = currARotation;
+        specifiedData.BRotation = currBRotation;
+        
+
+        return specifiedData;
     }
+
+    protected override bool TryParseNewTTD(ITimeTravelData ttd)
+    {
+        if (ttd is MovingPlatformTTD mpttd)
+        {
+            currAPoint = mpttd.APoint;
+            currBPoint = mpttd.BPoint;
+
+            currARotation = mpttd.ARotation;
+            currBRotation = mpttd.BRotation;
+
+            movingPlatform.position = currBPoint;
+            movingPlatform.rotation = Quaternion.Euler(0, 0, currBRotation);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Don't need GetParentInteractive because this is the first custom data we're saving
 }

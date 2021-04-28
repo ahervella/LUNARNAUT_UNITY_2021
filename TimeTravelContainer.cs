@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -82,9 +83,9 @@ public class TimeTravelContainer : MonoBehaviour
     {
         if (S_TimeTravel.Current.InFuture())
         {
-            ITimeTravelData blah = null;
-            pastInteractive.ComposeTimeTravelData(ref blah);
-            futureInteractive.ParseTimeTravelData(blah);
+
+            Dictionary<Type, ITimeTravelData> datas = pastInteractive.ComposeTimeTravelDatas(new Dictionary<Type, ITimeTravelData>());
+            futureInteractive.ParseTimeTravelDatas(datas);
         }
     }
 }

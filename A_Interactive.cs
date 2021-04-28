@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -88,24 +89,58 @@ public abstract class A_Interactive : MonoBehaviour
         }
     }
 
-
-    protected bool TryToCastTimeTravelData<T>(ref T castedVar, ITimeTravelData ittData)
+    protected virtual ITimeTravelData ComposeNewTTD()
     {
-        if (ittData is T)
-        {
-            castedVar = (T)ittData;
-            return true;
-        }
-        Debug.LogErrorFormat("The ITimeTravelData could not be composed because there is a type mismatch with {0} and {1} on object: {2}", typeof(T).FullName, ittData.GetType().FullName, gameObject.name);
+        return null;
+    }
+
+    protected virtual bool TryParseNewTTD(ITimeTravelData ttd)
+    {
         return false;
     }
 
-    public virtual void ComposeTimeTravelData(ref ITimeTravelData passedData)
+
+    public virtual A_Interactive GetParentInteractive()
     {
+        return null;
     }
 
-    public virtual void ParseTimeTravelData(ITimeTravelData data)
+    public Dictionary<Type, ITimeTravelData> ComposeTimeTravelDatas(Dictionary<Type, ITimeTravelData> dataDict)
     {
+        ITimeTravelData ttd = ComposeNewTTD();
+
+        dataDict.Add(GetType(), ttd);
+
+        A_Interactive parentInteractive = GetParentInteractive();
+        if (parentInteractive != null)
+        {
+            return parentInteractive.ComposeTimeTravelDatas(dataDict);
+        }
+
+        return dataDict;
+    }
+
+    public void ParseTimeTravelDatas(Dictionary<Type, ITimeTravelData> dataDict)
+    {
+        foreach (KeyValuePair<Type, ITimeTravelData> kvp in dataDict)
+        {
+            if (GetType() == kvp.Key)
+            {
+                if (!TryParseNewTTD(kvp.Value))
+                {
+                    Debug.LogErrorFormat("Failed to ParseTimeTravelData on object: {0}, in class: {1}, for ITimeTravelData type: {2}", name, GetType().ToString(), kvp.Key.ToString());
+                }
+            }
+        }
+
+        A_Interactive parentInteractive = GetParentInteractive();
+        if (parentInteractive != null)
+        {
+            parentInteractive.ParseTimeTravelDatas(dataDict);
+            return;
+        }
+
+        return;
     }
 
     /// <summary>
