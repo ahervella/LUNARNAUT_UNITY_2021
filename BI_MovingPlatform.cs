@@ -282,22 +282,6 @@ public class BI_MovingPlatform : BasicInteractive
 
     private void GetNextWP()
     {
-        /*
-        float prevWPDist = 0f;
-        
-        //if first one, can't use pointB as last pos
-        if (currWPIndex == 0)
-        {
-            currAPoint = wpWrappers[currWPIndex].pos;
-            currARotation = wpWrappers[currWPIndex].rot;
-        }
-        else
-        {
-            currAPoint = currBPoint;
-            currARotation = currBRotation;
-            prevWPDist = wpWrappers[currWPIndex].startDist;
-        }*/
-
         currAPoint = wpWrappers[currWPIndex].pos;
         currARotation = wpWrappers[currWPIndex].rot;
         float prevWPDist = wpWrappers[currWPIndex].startDist;
@@ -365,13 +349,6 @@ public class BI_MovingPlatform : BasicInteractive
 
     public class MovingPlatformTTD : ITimeTravelData
     {
-        /*
-        public Vector2 APoint;
-        public Vector2 BPoint;
-
-        public float ARotation;
-        public float BRotation;*/
-
         public List<Vector3> wayPointsPositions;
         public List<float> wayPointsRotations;
 
@@ -402,13 +379,7 @@ public class BI_MovingPlatform : BasicInteractive
         {
             ResetPlatformToOrigin();
         }
-        /*
-        specifiedData.APoint = currAPoint;
-        specifiedData.BPoint = currBPoint;
 
-        specifiedData.ARotation = currARotation;
-        specifiedData.BRotation = currBRotation;
-        */
         specifiedData.wayPointsPositions = wayPointsPos;
         specifiedData.wayPointsRotations = wayPointsRot;
         
