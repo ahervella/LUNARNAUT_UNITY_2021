@@ -17,20 +17,53 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
         }
     }
 
-    public enum DEV_TIME_PERIOD { NONE, FUTURE, PAST}
-
-    [SerializeField, GetSet("DevTimePeriod")]
-    private DEV_TIME_PERIOD devTimePeriod = DEV_TIME_PERIOD.NONE;
-    public event System.Action DevToolsTimePeriodChanged = delegate { };
-    public DEV_TIME_PERIOD DevTimePeriod
+    #region TIME_TRAVEL
+    public bool DevToolsEnabled_TIME_TRAVEL()
     {
-        get => devTimePeriod;
+        return EnableDevTools && TimeTravelDevTools;
+    }
+
+    [SerializeField, GetSet("TimeTravelDevTools")]
+    private bool timeTravelDevTools = false;
+    public event System.Action TimeTravelDevToolsChanged = delegate { };
+    public bool TimeTravelDevTools
+    {
+        get => timeTravelDevTools;
         set
         {
-            devTimePeriod = value;
-            DevToolsTimePeriodChanged();
+            timeTravelDevTools = value;
+            TimeTravelDevToolsChanged();
         }
     }
+
+    [SerializeField, GetSet("TogglePlayerEnableTimeTravel")]
+    private bool togglePlayerEnableTimeTravel = false;
+    public event System.Action TogglePlayerEnableTimeTravelChanged = delegate { };
+    public bool TogglePlayerEnableTimeTravel
+    {
+        get => togglePlayerEnableTimeTravel;
+        set
+        {
+            togglePlayerEnableTimeTravel = value;
+            TogglePlayerEnableTimeTravelChanged();
+        }
+    }
+
+    [SerializeField, GetSet("SetTTSpawnsAtCurrPos")]
+    private bool setTTSpawnsAtCurrPos = false;
+    public event System.Action SetTTSpawnsAtCurrPosChanged = delegate { };
+    public bool SetTTSpawnsAtCurrPos
+    {
+        get => setTTSpawnsAtCurrPos;
+        set
+        {
+            setTTSpawnsAtCurrPos = value;
+            SetTTSpawnsAtCurrPosChanged();
+        }
+    }
+
+    #endregion
+
 
     #region ASTRO_PLAYER
     public bool DevToolsEnabled_ASTRO_PLAYER()
@@ -52,7 +85,6 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
             AstroPlayerDevToolsChanged();
         }
     }
-
 
     public event System.Action CurrHealthChanged = delegate { };
     [SerializeField, GetSet("CurrHealth")]

@@ -12,7 +12,7 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
     public event System.Action ParseAstroTTD = delegate { };
     public event System.Action UpdateCamera = delegate { };
     //public event System.Action EnteringNewTimeline = delegate { };
-    private TIME_PERIOD timeline;
+    private TIME_PERIOD timeline = TIME_PERIOD.FUTURE;
     public TIME_PERIOD Timeline
     {
         get => timeline;
@@ -29,6 +29,42 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
             TimelineChanged();
             ParseAstroTTD();
             UpdateCamera();
+        }
+    }
+
+    public event System.Action PlayerTimeTravelEnabledChanged = delegate { };
+    private bool playertimeTravelEnabled;
+    public bool PlayerTimeTravelEnabled
+    {
+        get => playertimeTravelEnabled;
+        set
+        {
+            bool prevVal = playertimeTravelEnabled;
+            playertimeTravelEnabled = value;
+            if (prevVal != playertimeTravelEnabled)
+            {
+                PlayerTimeTravelEnabledChanged();
+            }
+        }
+    }
+
+
+
+
+
+    private void Awake()
+    {
+        S_DeveloperTools.Current.TogglePlayerEnableTimeTravelChanged -= S_DeveloperTools_TogglePlayerEnableTimeTravelChanged;
+        S_DeveloperTools.Current.TogglePlayerEnableTimeTravelChanged += S_DeveloperTools_TogglePlayerEnableTimeTravelChanged;
+
+        S_DeveloperTools_TogglePlayerEnableTimeTravelChanged();
+    }
+
+    private void S_DeveloperTools_TogglePlayerEnableTimeTravelChanged()
+    {
+        if (S_DeveloperTools.Current.DevToolsEnabled_TIME_TRAVEL())
+        {
+            PlayerTimeTravelEnabled = S_DeveloperTools.Current.TogglePlayerEnableTimeTravel;
         }
     }
 

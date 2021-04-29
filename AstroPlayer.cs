@@ -112,9 +112,15 @@ public class AstroPlayer : MonoBehaviour
         S_DeveloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
+        S_DeveloperTools.Current.TimeTravelDevToolsChanged -= S_DeveloperTools_TimeTravelDevToolsChanged;
+        S_DeveloperTools.Current.TimeTravelDevToolsChanged += S_DeveloperTools_TimeTravelDevToolsChanged;
 
         S_AstroInputManager.Current.ControlsEnabledChanged -= S_AstroInputManager_ControlsEnabeldChanged;
         S_AstroInputManager.Current.ControlsEnabledChanged += S_AstroInputManager_ControlsEnabeldChanged;
+
+        S_TimeTravel.Current.PlayerTimeTravelEnabledChanged -= S_TimeTravel_PlayerTimeTravelEnabled;
+        S_TimeTravel.Current.PlayerTimeTravelEnabledChanged += S_TimeTravel_PlayerTimeTravelEnabled;
+        S_TimeTravel_PlayerTimeTravelEnabled();
 
         S_TimeTravel.Current.ComposeAstroTTD -= S_TimeTravel_ComposeAstroTTD;
         S_TimeTravel.Current.ComposeAstroTTD += S_TimeTravel_ComposeAstroTTD;
@@ -132,8 +138,8 @@ public class AstroPlayer : MonoBehaviour
         }
         else
         {
-            pastTTD = new AstroTimeTravelData(pastStartPos);
-            futureTTD = new AstroTimeTravelData(futureStartPos);
+            pastTTD = DEVTOOLS_setTTSpawnsAtCurrPos ? new AstroTimeTravelData(transform) : new AstroTimeTravelData(pastStartPos);
+            futureTTD = DEVTOOLS_setTTSpawnsAtCurrPos ? new AstroTimeTravelData(transform) : new AstroTimeTravelData(futureStartPos);
             astroCollider = GetComponent<CapsuleCollider2D>();
             //shortcut to setting astro at start position
             S_TimeTravel_ParseAstroTTD();
@@ -145,13 +151,20 @@ public class AstroPlayer : MonoBehaviour
     /// </summary>
     private void S_DeveloperTools_EnableChanged()
     {
+        S_DeveloperTools_AstroPlayerDevToolsChanged();
+        S_DeveloperTools_TimeTravelDevToolsChanged();
+    }
+
+    private void S_DeveloperTools_AstroPlayerDevToolsChanged()
+    {
         S_DeveloperTools.Current.CurrHealthChanged -= S_DeveloperTools_CurrHealthChanged;
         S_DeveloperTools.Current.EnableUnlimtedJumpChanged -= S_DeveloperTools_EnableUnlimtedJumpChanged;
         S_DeveloperTools.Current.KillAstro -= S_DeveloperTools_KillAstro;
+        S_DeveloperTools.Current.GravityMultiplyerChanged += S_DeveloperTools_GravityMultiplyerChanged;
         S_DeveloperTools.Current.ShowPrintAstroVelLinesChanged -= S_DeveloperTools_ShowPrintAstroVelLinesChanged;
         S_DeveloperTools.Current.PrintRawPlayerInputsChanged -= S_DeveloperTools_PrintRawPlayerInputsChanged;
 
-        if (S_DeveloperTools.Current.EnableDevTools && S_DeveloperTools.Current.AstroPlayerDevTools)
+        if (S_DeveloperTools.Current.DevToolsEnabled_ASTRO_PLAYER())
         {
             S_DeveloperTools.Current.CurrHealthChanged += S_DeveloperTools_CurrHealthChanged;
             S_DeveloperTools.Current.EnableUnlimtedJumpChanged += S_DeveloperTools_EnableUnlimtedJumpChanged;
@@ -161,13 +174,26 @@ public class AstroPlayer : MonoBehaviour
             S_DeveloperTools.Current.PrintRawPlayerInputsChanged += S_DeveloperTools_PrintRawPlayerInputsChanged;
         }
 
-        S_DevloperTools_ManualUpdate();
+        S_DevloperTools_AstroDevToolsManualUpdate();
     }
 
-    private void S_DevloperTools_ManualUpdate()
+    private void S_DeveloperTools_TimeTravelDevToolsChanged()
+    {
+        S_DeveloperTools.Current.SetTTSpawnsAtCurrPosChanged -= S_DeveloperTools_SetTTSpawnsAtCurrPosChanged;
+
+        if (S_DeveloperTools.Current.DevToolsEnabled_TIME_TRAVEL())
+        {
+            S_DeveloperTools.Current.SetTTSpawnsAtCurrPosChanged += S_DeveloperTools_SetTTSpawnsAtCurrPosChanged;
+        }
+
+        S_DeveloperTools_SetTTSpawnsAtCurrPosChanged();
+    }
+
+    private void S_DevloperTools_AstroDevToolsManualUpdate()
     {
         S_DeveloperTools_CurrHealthChanged();
         S_DeveloperTools_EnableUnlimtedJumpChanged();
+        //on purpose left out kill astro changed here
         S_DeveloperTools_GravityMultiplyerChanged();
         S_DeveloperTools_ShowPrintAstroVelLinesChanged();
         S_DeveloperTools_PrintRawPlayerInputsChanged();
@@ -224,6 +250,18 @@ public class AstroPlayer : MonoBehaviour
 
         DEVTOOLS_printRawPlayerInputs = S_DeveloperTools.Current.PrintRawPlayerInputs;
     }
+
+    private bool DEVTOOLS_setTTSpawnsAtCurrPos = false;
+    private void S_DeveloperTools_SetTTSpawnsAtCurrPosChanged()
+    {
+        if (!S_DeveloperTools.Current.DevToolsEnabled_TIME_TRAVEL())
+        {
+            DEVTOOLS_setTTSpawnsAtCurrPos = false;
+            return;
+        }
+
+        DEVTOOLS_setTTSpawnsAtCurrPos = S_DeveloperTools.Current.SetTTSpawnsAtCurrPos;
+    }
     #endregion
 
 
@@ -246,6 +284,13 @@ public class AstroPlayer : MonoBehaviour
 
 
     #region TIME_TRAVEL
+
+    private bool TIME_TRAVEL_enabled = false;
+    private void S_TimeTravel_PlayerTimeTravelEnabled()
+    {
+        TIME_TRAVEL_enabled = S_TimeTravel.Current.PlayerTimeTravelEnabled;
+    }
+
 
     private class AstroTimeTravelData
     {
@@ -516,16 +561,23 @@ public class AstroPlayer : MonoBehaviour
 
             if (timeTravelInput_DOWN)
             {
-                if (inFuture.IsTrue())
+                timeTravelInput_DOWN = false;
+
+                if (TIME_TRAVEL_enabled)
                 {
-                    goToPast.Execute();
+                    if (inFuture.IsTrue())
+                    {
+                        goToPast.Execute();
+                    }
+                    else
+                    {
+                        goToFuture.Execute();
+                    }
                 }
                 else
                 {
-                    goToFuture.Execute();
+                    Debug.Log("Player tried to time travel but time traveling not enabled.");
                 }
-
-                timeTravelInput_DOWN = false;
             }
         }
         

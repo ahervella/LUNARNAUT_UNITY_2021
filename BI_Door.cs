@@ -11,6 +11,9 @@ public class BI_Door : BasicInteractive
     private bool automaticDoor = false;
     [SerializeField]
     private bool autoDoorAfterInteract = false;
+    [SerializeField]
+    private bool needInteractArgsForAuto = true;
+
 
     //TODO: split trigger into two somehow to be visible to editor?
     [SerializeField]
@@ -41,7 +44,7 @@ public class BI_Door : BasicInteractive
         }
 
         base.OnAstroEnter(astroGO);
-        if ((automaticDoor || (autoDoorAfterInteract && Interacted)) && AllInteractArgumentsTrue())
+        if ((automaticDoor || (autoDoorAfterInteract && Interacted)) && (AllInteractArgumentsTrue() || !needInteractArgsForAuto))
         {
             OpenDoor();
         }

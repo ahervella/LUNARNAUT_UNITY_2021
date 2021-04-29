@@ -16,6 +16,8 @@ public class S_Global : Singleton<S_Global>
         public bool MIND_LAB_POWER_ON = false;
         public bool MIND_LAB_MACHINE_ON = false;
         public bool MIND_LAB_CHAIR_ACTIVATED = false;
+
+        public bool ELEVATOR_ROOM_UNLOCKED = false;
     }
 
     //temp ime travel bool

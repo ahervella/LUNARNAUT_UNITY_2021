@@ -21,10 +21,17 @@ public class BI_MovingPlatform : BasicInteractive
     [SerializeField]
     private float moveTime = 3f;
 
+    [SerializeField]
+    private List<SO_Reaction> onMoveStartReactions;
+
+    [SerializeField]
+    private List<SO_Reaction> onMoveEndReactions;
+
     [Header("Audio Parameters")]
 
     [SerializeField]
     private GameObject platform3DSource;
+
 
     [SerializeField]
     private SoundOffsetWrapper onMoveStartSound;
@@ -188,6 +195,8 @@ public class BI_MovingPlatform : BasicInteractive
             return;
         }
 
+        ExecuteAllReactions(onMoveStartReactions);
+
         if (onMoveStartSound?.SoundEvent != null)
         {
             if (onMoveStartSound.SoundOffset < 0)
@@ -247,6 +256,7 @@ public class BI_MovingPlatform : BasicInteractive
 
     private void ResetAndReverseWP()
     {
+        ExecuteAllReactions(onMoveEndReactions);
         wayPointsPos.Reverse();
         wayPointsRot.Reverse();
         ResetAndChangeWPs(wayPointsPos, wayPointsRot);
