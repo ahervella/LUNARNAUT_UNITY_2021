@@ -23,6 +23,7 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
         return EnableDevTools && TimeTravelDevTools;
     }
 
+    [Header("TIME_TRAVEL")]
     [SerializeField, GetSet("TimeTravelDevTools")]
     private bool timeTravelDevTools = false;
     public event System.Action TimeTravelDevToolsChanged = delegate { };
@@ -59,6 +60,19 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
         {
             setTTSpawnsAtCurrPos = value;
             SetTTSpawnsAtCurrPosChanged();
+        }
+    }
+
+    [SerializeField, GetSet("EnableInspectorLevelVariables")]
+    private bool enableInspectorLevelVariables = false;
+    public event System.Action EnableInspectorLevelVariablesChanged = delegate { };
+    public bool EnableInspectorLevelVariables
+    {
+        get => enableInspectorLevelVariables;
+        set
+        {
+            enableInspectorLevelVariables = value;
+            EnableInspectorLevelVariablesChanged();
         }
     }
 
@@ -196,6 +210,7 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
     }
 
     public event System.Action DevToolsMovingPlatformsChanged = delegate { };
+    [Header("MOVING_PLATFORM")]
     [SerializeField, GetSet("DevToolsMovingPlatforms")]
     private bool devToolsMovingPlatforms;
     public bool DevToolsMovingPlatforms

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class BI_Door : BasicInteractive
 {
-    private enum DOOR_ENTRANCE { BOTH, RIGHT_ONLY, LEFT_ONLY}
+    private enum DOOR_ENTRANCE { BOTH, RIGHT_SIDE_ONLY, LEFT_SIDE_ONLY}
 
     [Header("Door")]
     [SerializeField]
@@ -56,13 +56,22 @@ public class BI_Door : BasicInteractive
         {
             case DOOR_ENTRANCE.BOTH:
                 return false;
-            case DOOR_ENTRANCE.LEFT_ONLY:
-                return !astroOnRightSide;
-            case DOOR_ENTRANCE.RIGHT_ONLY:
+            case DOOR_ENTRANCE.LEFT_SIDE_ONLY:
                 return astroOnRightSide;
+            case DOOR_ENTRANCE.RIGHT_SIDE_ONLY:
+                return !astroOnRightSide;
             default:
                 return false;
         }
+    }
+
+    public override void OnInteract()
+    {
+        if (OneWayRestriction())
+        {
+            return;
+        }
+        base.OnInteract();
     }
 
     protected override void OnSuccessfulInteract()

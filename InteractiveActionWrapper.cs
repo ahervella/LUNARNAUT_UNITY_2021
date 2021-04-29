@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -41,7 +41,7 @@ public class InteractiveActionWrapper
 
     public void TrySoundEvent(A_Interactive aint)
     {
-        if (SoundEvent.Name != "")
+        if (SoundEvent.Name != "" && aint.enabled)
         {
             if (aint.Audio3DSource == null)
             {
@@ -56,7 +56,7 @@ public class InteractiveActionWrapper
 
     public void TryOtherEmitters(MonoBehaviour sourceObjMono)
     {
-        foreach (EmitterContainer emitc in EmitterContainers)
+        if (emitc.OtherEmitter.SoundEvent.Name != "" && sourceObjMono.enabled)
         {
             sourceObjMono.StartCoroutine(DelayPlaySound(emitc.SoundDelay, emitc.OtherEmitter.SoundEvent, emitc.OtherEmitter.gameObject));
         }
