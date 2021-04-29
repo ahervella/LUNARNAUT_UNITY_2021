@@ -67,7 +67,16 @@ public class AstroAnim : MonoBehaviour
     private Coroutine blinkCR;
 
     private PLAYER_STATE currState = PLAYER_STATE.STAND;
-    private bool facingRight = true;
+    private bool _facingRight;
+    private bool FacingRight
+    {
+        get => _facingRight;
+        set
+        {
+            _facingRight = value;
+            UpdateOrientation();
+        }
+    }
     private int astroHealth;
     //private bool canChangePlayerState = true;
     private Coroutine switchAnimCR;
@@ -102,6 +111,13 @@ public class AstroAnim : MonoBehaviour
         S_DeveloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
+
+        S_TimeTravel.Current.ParseAstroTTD -= S_TimeTravel_ParseAstroTTD;
+        S_TimeTravel.Current.ParseAstroTTD += S_TimeTravel_ParseAstroTTD;
+
+        pastFacingRight = pastStartFacingRight;
+        futureFacingRight = futureStartFacingRight;
+        FacingRight = S_TimeTravel.Current.InFuture() ? futureFacingRight : pastFacingRight;
     }
 
     private void S_DeveloperTools_EnableChanged()
@@ -132,6 +148,33 @@ public class AstroAnim : MonoBehaviour
 
         DEVTOOLS_printAstroAnims = S_DeveloperTools.Current.PrintAstroAnims;
     }
+    #endregion
+
+    #region TIME_TRAVEL
+
+    //these are set initially in awake
+    [SerializeField]
+    private bool pastStartFacingRight;
+    private bool pastFacingRight;
+
+    [SerializeField]
+    private bool futureStartFacingRight;
+    private bool futureFacingRight;
+
+    private void S_TimeTravel_ParseAstroTTD()
+    {
+        if (S_TimeTravel.Current.InFuture())
+        {
+            pastFacingRight = FacingRight;
+            FacingRight = futureFacingRight;
+        }
+        else
+        {
+            futureFacingRight = FacingRight;
+            FacingRight = pastFacingRight;
+        }
+    }
+
     #endregion
 
     private void Start()
@@ -183,7 +226,7 @@ public class AstroAnim : MonoBehaviour
 
     private void SuitUpdate()
     {
-        if (facingRight)
+        if (FacingRight)
         {
             switch (astroHealth)
             {
@@ -355,7 +398,7 @@ public class AstroAnim : MonoBehaviour
 
     public void AnimLogicLateUpdate()
     {
-        bool tempFacingRight = facingRight;
+        bool tempFacingRight = FacingRight;
         currXDir = xDir;
 
         if (xDir != 0)
@@ -363,10 +406,9 @@ public class AstroAnim : MonoBehaviour
             tempFacingRight = xDir > 0;
         }
 
-        if (tempFacingRight != facingRight)
+        if (tempFacingRight != FacingRight)
         {
-            facingRight = tempFacingRight;
-            UpdateOrientation();
+            FacingRight = tempFacingRight;
             SuitUpdate();
             SwitchAnimSuit();
         }
@@ -421,7 +463,7 @@ public class AstroAnim : MonoBehaviour
 
     private void UpdateOrientation()
     {
-        float multiplyer = facingRight ? 1 : -1;
+        float multiplyer = FacingRight ? 1 : -1;
         transform.localScale = new Vector3(Math.Abs(transform.localScale.x) * multiplyer, transform.localScale.y, transform.localScale.z);
         OnOrientationUpdate(multiplyer);
     }

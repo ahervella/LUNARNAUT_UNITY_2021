@@ -115,6 +115,29 @@ public class AstroPlayer : MonoBehaviour
 
         S_AstroInputManager.Current.ControlsEnabledChanged -= S_AstroInputManager_ControlsEnabeldChanged;
         S_AstroInputManager.Current.ControlsEnabledChanged += S_AstroInputManager_ControlsEnabeldChanged;
+
+        S_TimeTravel.Current.ComposeAstroTTD -= S_TimeTravel_ComposeAstroTTD;
+        S_TimeTravel.Current.ComposeAstroTTD += S_TimeTravel_ComposeAstroTTD;
+
+        S_TimeTravel.Current.ParseAstroTTD -= S_TimeTravel_ParseAstroTTD;
+        S_TimeTravel.Current.ParseAstroTTD += S_TimeTravel_ParseAstroTTD;
+
+        goToFuture = new SO_RA_GoToFuture();
+        goToPast = new SO_RA_GoToPast();
+        inFuture = new SO_BA_InFuture();
+
+        if (pastStartPos == null || futureStartPos == null)
+        {
+            Debug.LogError("Astro doesn't have a start position for the past or future!");
+        }
+        else
+        {
+            pastTTD = new AstroTimeTravelData(pastStartPos);
+            futureTTD = new AstroTimeTravelData(futureStartPos);
+            astroCollider = GetComponent<CapsuleCollider2D>();
+            //shortcut to setting astro at start position
+            S_TimeTravel_ParseAstroTTD();
+        }
     }
 
     /// <summary>
@@ -217,6 +240,82 @@ public class AstroPlayer : MonoBehaviour
             leftInput_STATE = false;
             rightInput_STATE = false;
         }
+    }
+
+    #endregion
+
+
+    #region TIME_TRAVEL
+
+    private class AstroTimeTravelData
+    {
+        public AstroTimeTravelData(Transform startTransform)
+        {
+            startPos = new Vector2(startTransform.position.x, startTransform.position.y);
+        }
+        private Vector2 startPos;
+        public GameObject groundObject;
+        //if we switch and haven't had a chance to cache it before, use designated start pos
+        public Vector2 GroundObjectPos => groundObject == null? startPos : new Vector2(groundObject.transform.position.x, groundObject.transform.position.y);
+        public Vector2 astroLocalGroundObjectPos = Vector2.zero;
+        public int health;
+    }
+
+    //set in awake to new instances
+    //TODO: change to live in singleton for when we get to multiple levels
+    private AstroTimeTravelData pastTTD;
+    private AstroTimeTravelData futureTTD;
+
+    [SerializeField]
+    private Transform pastStartPos;
+    [SerializeField]
+    private Transform futureStartPos;
+
+    private CapsuleCollider2D astroCollider;
+
+    private void S_TimeTravel_ComposeAstroTTD()
+    {
+        AstroTimeTravelData ttd = S_TimeTravel.Current.InFuture() ? pastTTD : futureTTD;
+        RaycastHit2D closestGroundSpot = GetClosestGroundCollision();
+        ttd.groundObject = closestGroundSpot.collider.gameObject;
+        ttd.astroLocalGroundObjectPos = closestGroundSpot.point - ttd.GroundObjectPos + new Vector2(0, astroCollider.size.y);
+        ttd.health = health;
+    }
+
+    private void S_TimeTravel_ParseAstroTTD()
+    {
+
+        AstroTimeTravelData ttd = S_TimeTravel.Current.InFuture() ? futureTTD : pastTTD;
+        
+        //TODO: set only in FixedUpdate? Is it possible for timetravel to happen on a non FixedUpdate frame?
+        Vector2 newAstroPos = ttd.astroLocalGroundObjectPos + ttd.GroundObjectPos;
+        transform.position = new Vector3(newAstroPos.x, newAstroPos.y, transform.position.z);
+        //Specifically want to set the private health here and not the public field Health because technically health has not changed
+        health = ttd.health;
+    }
+
+    private RaycastHit2D GetClosestGroundCollision()
+    {
+        RaycastHit2D[] results = new RaycastHit2D[MAX_COLLISIONS];
+
+        //TODO: calculate trajectory parabola to get more accurate final location when in air? lol
+        int contactCount = rb.Cast(Vector2.down, cf, results);
+        if (contactCount == 0)
+        {
+            Debug.LogError("FUCK, there's no ground ever at all when we tried time traveling for Astro, does that mean we died from falling?");
+            return new RaycastHit2D();
+        }
+
+        //TODO: can we assume the clossest is always the first?
+        RaycastHit2D closestGroundColl = results[0];
+        for (int i = 1; i < contactCount; i++)
+        {
+            if (closestGroundColl.distance > results[i].distance)
+            {
+                closestGroundColl = results[i];
+            }
+        }
+        return closestGroundColl;
     }
 
     #endregion

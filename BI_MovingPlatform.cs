@@ -176,6 +176,7 @@ public class BI_MovingPlatform : BasicInteractive
 
     private void MovePlatform()
     {
+        TimeTravel_ChangedState = true;
         if (ErrorCheckForWayPointsSize())
         {
             return;
@@ -220,7 +221,7 @@ public class BI_MovingPlatform : BasicInteractive
     protected bool TweenInProgress()
     {
         //if in progress, don't interrupt
-        return currTime != 1f;
+        return currTime < 1f;
     }
 
     protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent)
@@ -244,21 +245,36 @@ public class BI_MovingPlatform : BasicInteractive
         }
     }
 
+    private void ResetAndReverseWP()
+    {
+        wayPointsPos.Reverse();
+        wayPointsRot.Reverse();
+        ResetAndChangeWPs(wayPointsPos, wayPointsRot);
+    }
+
+    private void ResetAndChangeWPs(List<Vector3> positions, List<float> rotations)
+    {
+        wayPointsPos = positions;
+        wayPointsRot = rotations;
+        CalcTotalDist();
+        ResetPlatformToOrigin();
+    }
+
+    private void ResetPlatformToOrigin()
+    {
+        currWPIndex = 0;
+        currTime = 1f;
+        GetNextWP();
+
+        movingPlatform.position = currAPoint;
+        movingPlatform.rotation = Quaternion.Euler(0, 0, currARotation);
+    }
+
     private void GetNextWP()
     {
-        //reset
-        if (currWPIndex == wpWrappers.Count -1)
-        {
-            currWPIndex = 0;
-            //reverse points so we go in opposite direction now
-            //next time time is set to 0
-            wayPointsPos.Reverse();
-            wayPointsRot.Reverse();
-            CalcTotalDist();
-        }
-
+        /*
         float prevWPDist = 0f;
-
+        
         //if first one, can't use pointB as last pos
         if (currWPIndex == 0)
         {
@@ -270,7 +286,12 @@ public class BI_MovingPlatform : BasicInteractive
             currAPoint = currBPoint;
             currARotation = currBRotation;
             prevWPDist = wpWrappers[currWPIndex].startDist;
-        }
+        }*/
+
+        currAPoint = wpWrappers[currWPIndex].pos;
+        currARotation = wpWrappers[currWPIndex].rot;
+        float prevWPDist = wpWrappers[currWPIndex].startDist;
+
         currWPIndex++;
         currBPoint = wpWrappers[currWPIndex].pos;
         currBRotation = wpWrappers[currWPIndex].rot;
@@ -292,7 +313,7 @@ public class BI_MovingPlatform : BasicInteractive
 
         if (currTime >= 1f)
         {
-            ImmediatelyMovePlatformToDest();
+            ResetAndReverseWP();
             return;
         }
 
@@ -301,9 +322,15 @@ public class BI_MovingPlatform : BasicInteractive
 
         int failSafe = 0;
         //GetNextWP gaurantees increase in currWPIndex or that currWPIndex = wpWrappers.Count - 1
-        while (localTimeStep >= 1f && currWPIndex < wpWrappers.Count - 1 && failSafe < 100)
+        while (localTimeStep >= 1f && failSafe < 100)
         {
             failSafe++;
+            if (currWPIndex >= wpWrappers.Count - 1)
+            {
+                ResetAndReverseWP();
+                return;
+            }
+
             GetNextWP();
             localTimeStep = currWPSlope * currSmoothTime + currWPIntercept;
         }
@@ -312,13 +339,7 @@ public class BI_MovingPlatform : BasicInteractive
         movingPlatform.rotation = Quaternion.Euler(0, 0, Mathf.LerpAngle(currARotation, currBRotation, localTimeStep));
     }
 
-    private void ImmediatelyMovePlatformToDest()
-    {
-        currTime = 1f;
-        movingPlatform.position = currBPoint;
-        movingPlatform.rotation = Quaternion.Euler(0, 0, currBRotation);
-        GetNextWP();
-    }
+
 
     private bool ErrorCheckForWayPointsSize()
     {
@@ -334,11 +355,30 @@ public class BI_MovingPlatform : BasicInteractive
 
     public class MovingPlatformTTD : ITimeTravelData
     {
+        /*
         public Vector2 APoint;
         public Vector2 BPoint;
 
         public float ARotation;
-        public float BRotation;
+        public float BRotation;*/
+
+        public List<Vector3> wayPointsPositions;
+        public List<float> wayPointsRotations;
+
+        public ITimeTravelData MakeDeepCopy()
+        {
+            MovingPlatformTTD deepCopy = new MovingPlatformTTD();
+            deepCopy.wayPointsPositions = new List<Vector3>();
+            deepCopy.wayPointsRotations = new List<float>();
+
+            for(int i = 0; i < wayPointsPositions.Count; i++)
+            {
+                deepCopy.wayPointsPositions.Add(wayPointsPositions[i]);
+                deepCopy.wayPointsRotations.Add(wayPointsRotations[i]);
+            }
+
+            return deepCopy;
+        }
     }
 
     protected override ITimeTravelData ComposeNewTTD()
@@ -346,16 +386,22 @@ public class BI_MovingPlatform : BasicInteractive
         MovingPlatformTTD specifiedData = new MovingPlatformTTD();
         if (TweenInProgress())
         {
-            ImmediatelyMovePlatformToDest();
+            ResetAndReverseWP();
         }
-
+        else
+        {
+            ResetPlatformToOrigin();
+        }
+        /*
         specifiedData.APoint = currAPoint;
         specifiedData.BPoint = currBPoint;
 
         specifiedData.ARotation = currARotation;
         specifiedData.BRotation = currBRotation;
+        */
+        specifiedData.wayPointsPositions = wayPointsPos;
+        specifiedData.wayPointsRotations = wayPointsRot;
         
-
         return specifiedData;
     }
 
@@ -363,14 +409,7 @@ public class BI_MovingPlatform : BasicInteractive
     {
         if (ttd is MovingPlatformTTD mpttd)
         {
-            currAPoint = mpttd.APoint;
-            currBPoint = mpttd.BPoint;
-
-            currARotation = mpttd.ARotation;
-            currBRotation = mpttd.BRotation;
-
-            movingPlatform.position = currBPoint;
-            movingPlatform.rotation = Quaternion.Euler(0, 0, currBRotation);
+            ResetAndChangeWPs(mpttd.wayPointsPositions, mpttd.wayPointsRotations);
             return true;
         }
 

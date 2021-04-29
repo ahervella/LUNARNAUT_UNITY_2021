@@ -50,6 +50,14 @@ public class AstroCamera : MonoBehaviour
     private float targetZoom;
     private Vector3 astroPlayerPos;
 
+    [SerializeField]
+    private ZOOM pastStartZoom;
+    [SerializeField]
+    private ZOOM futureStartZoom;
+
+    private ZOOM pastZoom;
+    private ZOOM futureZoom;
+
     //TODO: use the getter setter custom shit so we don't have to do this for optimization
     [SerializeField]
     private bool testUpdatingValues = false;
@@ -66,11 +74,12 @@ public class AstroCamera : MonoBehaviour
 
 
         currTime = 1f;
-        currZoomType = ZOOM.NORM;
+
+        pastZoom = pastStartZoom;
+        futureZoom = futureStartZoom;
 
         SetZoomDict();
-
-        prevZoom = targetZoom;
+        InstantSetZoom(S_TimeTravel.Current.InFuture() ? futureZoom : pastZoom);
 
         SetOffset3D();
         UpdateCachedAstroPos();
@@ -88,10 +97,42 @@ public class AstroCamera : MonoBehaviour
         */
 
         //keep the current cameras z axis pos
-        
+        AstroAnim.OnOrientationUpdate -= AstroAnim_OnOrientationUpdate;
         AstroAnim.OnOrientationUpdate += AstroAnim_OnOrientationUpdate;
+
+
+        S_TimeTravel.Current.UpdateCamera -= S_TimeTravel_UpdateCamera;
+        S_TimeTravel.Current.UpdateCamera += S_TimeTravel_UpdateCamera;
         //TODO: implement a subscribe to camera zoom change's static on zoom change
 
+        InstantSetCameraToAstro();
+    }
+
+    private void S_TimeTravel_UpdateCamera()
+    {
+        if (S_TimeTravel.Current.InFuture())
+        {
+            pastZoom = currZoomType;
+            InstantSetZoom(futureZoom);
+        }
+        else
+        {
+            futureZoom = currZoomType;
+            InstantSetZoom(pastZoom);
+        }
+
+        InstantSetCameraToAstro();
+    }
+
+    private void InstantSetZoom(ZOOM zoom)
+    {
+        currZoomType = zoom;
+        prevZoom = zoomDict[currZoomType];
+        targetZoom = zoomDict[currZoomType];
+    }
+
+    private void InstantSetCameraToAstro()
+    {
         transform.position = new Vector3(astroPlayer.position.x, astroPlayer.position.y, transform.position.z) + offset3D;
     }
 

@@ -9,6 +9,7 @@ public abstract class A_Interactive : MonoBehaviour
     private const string ASTRO_TAG = "ASTRO";
     private const KeyCode INTERACT_KEY = KeyCode.E;
     private bool astroInArea = false;
+    public bool TimeTravel_ChangedState { get; set; } = false;
 
     [SerializeField]
     private GameObject audio3DSource;

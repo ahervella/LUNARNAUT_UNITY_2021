@@ -19,6 +19,10 @@ public class TimeTravelContainer : MonoBehaviour
     [SerializeField]
     private List<GameObject> pastObjects = default;
 
+
+    private Dictionary<Type, ITimeTravelData> pastDatasCache = new Dictionary<Type, ITimeTravelData>();
+    private Dictionary<Type, ITimeTravelData> futreDatasCache = new Dictionary<Type, ITimeTravelData>();
+
     private void Awake()
     {
         S_TimeTravel.Current.TimelineChanged -= S_TimeTravel_TimelineChanged;
@@ -36,6 +40,11 @@ public class TimeTravelContainer : MonoBehaviour
     }
 
     private void Start()
+    {
+        ChangeEnabledTimeObjects();
+    }
+
+    private void ChangeEnabledTimeObjects()
     {
         if (S_TimeTravel.Current.InPast())
         {
@@ -55,7 +64,6 @@ public class TimeTravelContainer : MonoBehaviour
             }
             SetEnableAllObjects(ref pastObjects, false);
         }
-
     }
 
     private bool AllBoolArgsTrue(List<SO_BoolArgument> boolArgs)
@@ -79,13 +87,48 @@ public class TimeTravelContainer : MonoBehaviour
         }
     }
 
+
     private void S_TimeTravel_TimelineChanged()
     {
-        if (S_TimeTravel.Current.InFuture())
+        if (pastInteractive != null && futureInteractive != null)
         {
+            if (S_TimeTravel.Current.InFuture())
+            {
+                pastDatasCache = MakeTTDDatasDeepCopy(pastInteractive.ComposeTimeTravelDatas(new Dictionary<Type, ITimeTravelData>()));
 
-            Dictionary<Type, ITimeTravelData> datas = pastInteractive.ComposeTimeTravelDatas(new Dictionary<Type, ITimeTravelData>());
-            futureInteractive.ParseTimeTravelDatas(datas);
+                //Only change the future if we did something to change the past so that
+                //if we had set speicifc things in the future but still made no change in the past
+                //and go back to the future, should be how we left them
+                if (pastInteractive.TimeTravel_ChangedState)
+                {
+                    pastInteractive.TimeTravel_ChangedState = false;
+                    futureInteractive.ParseTimeTravelDatas(MakeTTDDatasDeepCopy(pastDatasCache));
+                }
+                else
+                {
+                    futureInteractive.ParseTimeTravelDatas(MakeTTDDatasDeepCopy(futreDatasCache));
+                }
+            }
+            else
+            {
+                futreDatasCache = MakeTTDDatasDeepCopy(futureInteractive.ComposeTimeTravelDatas(new Dictionary<Type, ITimeTravelData>()));
+
+                pastInteractive.TimeTravel_ChangedState = false;
+                pastInteractive.ParseTimeTravelDatas(MakeTTDDatasDeepCopy(pastDatasCache));
+            }
         }
+
+
+        ChangeEnabledTimeObjects();
+    }
+
+    private Dictionary<Type, ITimeTravelData> MakeTTDDatasDeepCopy(Dictionary<Type, ITimeTravelData> datas)
+    {
+        Dictionary<Type, ITimeTravelData> deepCopy = new Dictionary<Type, ITimeTravelData>();
+        foreach (KeyValuePair<Type, ITimeTravelData> kvp in datas)
+        {
+            deepCopy.Add(kvp.Key, kvp.Value.MakeDeepCopy());
+        }
+        return deepCopy;
     }
 }
