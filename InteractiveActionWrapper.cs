@@ -41,7 +41,12 @@ public class InteractiveActionWrapper
 
     public void TrySoundEvent(A_Interactive aint)
     {
-        if (SoundEvent.Name != "" && aint.enabled)
+        if (!aint.enabled)
+        {
+            Debug.LogFormat("Tried to play sound on A_Interactive: {0} but it is disabled.", aint.name);
+            return;
+        }
+        if (SoundEvent.Name != "")
         {
             if (aint.Audio3DSource == null)
             {
@@ -56,8 +61,17 @@ public class InteractiveActionWrapper
 
     public void TryOtherEmitters(MonoBehaviour sourceObjMono)
     {
-        if (emitc.OtherEmitter.SoundEvent.Name != "" && sourceObjMono.enabled)
+        if (!sourceObjMono.enabled)
         {
+            Debug.LogFormat("Tried to play sound on object: {0} but it is disabled.", sourceObjMono.name);
+            return;
+        }
+        foreach (EmitterContainer emitc in EmitterContainers)
+        {
+            if (emitc.OtherEmitter.SoundEvent.Name == "")
+            {
+                continue;
+            }
             sourceObjMono.StartCoroutine(DelayPlaySound(emitc.SoundDelay, emitc.OtherEmitter.SoundEvent, emitc.OtherEmitter.gameObject));
         }
     }
