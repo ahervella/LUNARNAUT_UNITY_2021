@@ -271,6 +271,10 @@ public class AstroPlayer : MonoBehaviour
     private void S_AstroInputManager_ControlsEnabeldChanged()
     {
         INPUT_controlsEnabled = S_AstroInputManager.Current.ControlsEnabled;
+        if (!INPUT_controlsEnabled)
+        {
+            vel = Vector2.zero;
+        }
 
         lock (_inputLock)
         {

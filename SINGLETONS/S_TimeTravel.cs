@@ -10,12 +10,16 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
     public event System.Action ComposeAstroTTD = delegate { };
     public event System.Action ParseAstroTTD = delegate { };
     public event System.Action UpdateCamera = delegate { };
+    public event System.Action InitTimeTravelFade = delegate { };
+
+    private bool ttInProgress = false;
+    private bool ttWereControlsEnabled = true;
 
     private TIME_PERIOD timeline = TIME_PERIOD.FUTURE;
     public TIME_PERIOD Timeline
     {
         get => timeline;
-        set
+        private set
         {
             if (timeline == value)
             {
@@ -28,6 +32,7 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
             TimelineChanged();
             ParseAstroTTD();
             UpdateCamera();
+            ttInProgress = false;
         }
     }
 
@@ -56,6 +61,12 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
         S_DeveloperTools.Current.TogglePlayerEnableTimeTravelChanged -= S_DeveloperTools_TogglePlayerEnableTimeTravelChanged;
         S_DeveloperTools.Current.TogglePlayerEnableTimeTravelChanged += S_DeveloperTools_TogglePlayerEnableTimeTravelChanged;
 
+        AstroCamera.FadeOutComplete -= AstroCamera_FadeOutComplete;
+        AstroCamera.FadeOutComplete += AstroCamera_FadeOutComplete;
+
+        AstroCamera.FadeInComplete -= AstroCamera_FadeInComplete;
+        AstroCamera.FadeInComplete += AstroCamera_FadeInComplete;
+
         S_DeveloperTools_TogglePlayerEnableTimeTravelChanged();
     }
 
@@ -65,6 +76,40 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
         {
             PlayerTimeTravelEnabled = S_DeveloperTools.Current.TogglePlayerEnableTimeTravel;
         }
+    }
+
+    public void ToggleTimeTravel()
+    {
+        if (InFuture())
+        {
+            InitTimeTravel(TIME_PERIOD.PAST);
+        }
+        else
+        {
+            InitTimeTravel(TIME_PERIOD.FUTURE);
+        }
+    }
+
+    public void InitTimeTravel(TIME_PERIOD newTimeline)
+    {
+        if (ttInProgress)
+        {
+            Debug.Log("Tried to time travel when it was in progress...");
+            return;
+        }
+        ttInProgress = true;
+        S_AstroInputManager.Current.ControlsEnabled = false;
+        InitTimeTravelFade();
+    }
+
+    public void AstroCamera_FadeOutComplete()
+    {
+        Timeline = InFuture() ? TIME_PERIOD.PAST : TIME_PERIOD.FUTURE;
+    }
+
+    public void AstroCamera_FadeInComplete()
+    {
+        S_AstroInputManager.Current.ControlsEnabled = ttWereControlsEnabled;
     }
 
     public bool InPast() => Timeline == TIME_PERIOD.PAST;

@@ -5,6 +5,6 @@ public class SO_BA_InPast : SO_BoolArgument
 {
     public override bool IsTrue()
     {
-        return S_TimeTravel.Current.Timeline == S_TimeTravel.TIME_PERIOD.PAST;
+        return S_TimeTravel.Current.InPast();
     }
 }

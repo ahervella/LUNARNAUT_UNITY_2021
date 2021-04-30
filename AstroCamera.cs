@@ -2,11 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(Camera))]
 public class AstroCamera : MonoBehaviour
 {
-    public enum ZOOM {NORM, CLOSE, WIDE, EXTRA_WIDE}
+    public enum ZOOM { NORM, CLOSE, WIDE, EXTRA_WIDE }
 
     [SerializeField]
     private Transform astroPlayer;
@@ -28,6 +29,9 @@ public class AstroCamera : MonoBehaviour
     [SerializeField]
     List<ZoomKeyVal> zoomValues;
 
+    private List<ZoomWrapper> zoomStack = new List<ZoomWrapper>();
+    private ZoomArea zoomAreaBeforeTT = null;
+
     private Dictionary<ZOOM, float> zoomDict = new Dictionary<ZOOM, float>();
 
 
@@ -43,24 +47,48 @@ public class AstroCamera : MonoBehaviour
         public float ZoomVal => zoomVal;
     }
 
+    private class ZoomWrapper
+    {
+        public ZoomWrapper(ZoomArea zoomArea, ZOOM zoomType)
+        {
+            ZoomArea = zoomArea;
+            ZoomType = zoomType;
+        }
+
+        public ZoomArea ZoomArea { get; private set; }
+        public ZOOM ZoomType { get; private set; }
+    }
+
     private Camera camComponent;
-    private float currTime = 0f;
+    private float currZoomTime = 0f;
     private ZOOM currZoomType;
-    private float prevZoom;
-    private float targetZoom;
+    private float prevZoom = 0;
+    private float targetZoom = 0;
+    private bool nextZoomSetInstant = true;
+
     private Vector3 astroPlayerPos;
-
-    [SerializeField]
-    private ZOOM pastStartZoom;
-    [SerializeField]
-    private ZOOM futureStartZoom;
-
-    private ZOOM pastZoom;
-    private ZOOM futureZoom;
 
     //TODO: use the getter setter custom shit so we don't have to do this for optimization
     [SerializeField]
     private bool testUpdatingValues = false;
+
+    [SerializeField]
+    private Image blackFade = default;
+
+    [SerializeField]
+    private float ttFadeOutTime = 1;
+    [SerializeField]
+    private float ttFadeInDelayTime = 0.5f;
+    [SerializeField]
+    private float ttFadeInTime = 0.25f;
+
+    private bool ttFadingOut = true;
+    private bool ttFadingIn = true;
+    private float ttFadeOutStep = 0f;
+    private float ttFadeInStep = 0f;
+
+    public static event System.Action FadeOutComplete;
+    public static event System.Action FadeInComplete;
 
     private void Awake()
     {
@@ -73,13 +101,16 @@ public class AstroCamera : MonoBehaviour
         }
 
 
-        currTime = 1f;
+        if (blackFade == null)
+        {
+            Debug.LogError("The black fade on the camera was not set!");
+        }
 
-        pastZoom = pastStartZoom;
-        futureZoom = futureStartZoom;
+        currZoomTime = 1f;
+        
 
         SetZoomDict();
-        InstantSetZoom(S_TimeTravel.Current.InFuture() ? futureZoom : pastZoom);
+        //InstantSetZoom(S_TimeTravel.Current.InFuture() ? futureZoom : pastZoom);
 
         SetOffset3D();
         UpdateCachedAstroPos();
@@ -100,35 +131,36 @@ public class AstroCamera : MonoBehaviour
         AstroAnim.OnOrientationUpdate -= AstroAnim_OnOrientationUpdate;
         AstroAnim.OnOrientationUpdate += AstroAnim_OnOrientationUpdate;
 
-
+        
         S_TimeTravel.Current.UpdateCamera -= S_TimeTravel_UpdateCamera;
         S_TimeTravel.Current.UpdateCamera += S_TimeTravel_UpdateCamera;
-        //TODO: implement a subscribe to camera zoom change's static on zoom change
+        S_TimeTravel.Current.InitTimeTravelFade += S_TimeTravel_InitTimeTravelFade;
 
-        InstantSetCameraToAstro();
+        ZoomArea.EnteredZoomArea -= ZoomArea_EnteredZoom;
+        ZoomArea.EnteredZoomArea += ZoomArea_EnteredZoom;
+
+        ZoomArea.ExitedZoomArea -= ZoomArea_ExitedZoom;
+        ZoomArea.ExitedZoomArea += ZoomArea_ExitedZoom;
+
     }
 
+    
+    private void Start()
+    {
+        InstantSetCameraToAstro();
+    }
     private void S_TimeTravel_UpdateCamera()
     {
-        if (S_TimeTravel.Current.InFuture())
+        InstantSetCameraToAstro();
+
+        if (zoomStack.Count > 0)
         {
-            pastZoom = currZoomType;
-            InstantSetZoom(futureZoom);
+            nextZoomSetInstant = zoomAreaBeforeTT != zoomStack[zoomStack.Count - 1].ZoomArea;
         }
         else
         {
-            futureZoom = currZoomType;
-            InstantSetZoom(pastZoom);
+            nextZoomSetInstant = zoomAreaBeforeTT != null;
         }
-
-        InstantSetCameraToAstro();
-    }
-
-    private void InstantSetZoom(ZOOM zoom)
-    {
-        currZoomType = zoom;
-        prevZoom = zoomDict[currZoomType];
-        targetZoom = zoomDict[currZoomType];
     }
 
     private void InstantSetCameraToAstro()
@@ -172,11 +204,88 @@ public class AstroCamera : MonoBehaviour
         offset3D.x = Mathf.Abs(offset3D.x) * directionMultiplyer;
     }
 
-    private void OnCameraZoomChanged(ZOOM newZoom)
+
+    private void ZoomArea_EnteredZoom(ZoomArea zoomArea, ZOOM zoomType)
     {
-        currTime = 0f;
-        prevZoom = targetZoom;
+
+        if (GetZoomWrapperFromStack(zoomArea) != null)
+        {
+            Debug.LogErrorFormat("Some shit went real wrong trying to add ZoomArea: {0} to the zoom stack but already in stack.", zoomArea.name);
+            return;
+        }
+
+        zoomStack.Add(new ZoomWrapper(zoomArea, zoomType));
+
+        ChangeCameraZoom(zoomType);
+    }
+
+    private void ZoomArea_ExitedZoom(ZoomArea zoomArea, ZOOM zoomType)
+    {
+        ZoomWrapper zw = GetZoomWrapperFromStack(zoomArea);
+        if (zw == null)
+        {
+            Debug.LogErrorFormat("Tryed to remove ZoomArea: {0} from the zoom stack but not in stack.", zoomArea.name);
+            return;
+        }
+        zoomStack.Remove(zw);
+
+        if (zoomStack.Count > 0)
+        {
+            ChangeCameraZoom(zoomStack[zoomStack.Count-1].ZoomType);
+        }
+    }
+
+    private ZoomWrapper GetZoomWrapperFromStack(ZoomArea zoomArea)
+    {
+        foreach(ZoomWrapper zw in zoomStack)
+        {
+            if (zw.ZoomArea == zoomArea)
+            {
+                return zw;
+            }
+        }
+
+        return null;
+    }
+
+
+    private void ChangeCameraZoom(ZOOM newZoom)
+    {
+        //only happens on the first zoom set from starting scene
+        if (nextZoomSetInstant)
+        {
+            nextZoomSetInstant = false;
+            InstantSetZoom(newZoom);
+            return;
+        }
+
+        if (newZoom == currZoomType)
+        {
+            //no need and let this animation play out if its in the middle of that
+            nextZoomSetInstant = false;
+            return;
+        }
+
+        currZoomType = newZoom;
+        currZoomTime = 0f;
+        prevZoom = camComponent.orthographicSize;
         targetZoom = zoomDict[newZoom];
+    }
+
+    private void InstantSetZoom(ZOOM zoom)
+    {
+        currZoomType = zoom;
+        currZoomTime = 1f;
+        prevZoom = zoomDict[currZoomType];
+        targetZoom = zoomDict[currZoomType];
+        camComponent.orthographicSize = targetZoom;
+    }
+
+    private void S_TimeTravel_InitTimeTravelFade()
+    {
+        ttFadeOutStep = Time.fixedDeltaTime / ttFadeOutTime;
+        ttFadeInStep = -Time.fixedDeltaTime / ttFadeInTime;
+        ttFadingOut = true;
     }
 
     //Want FixedUpdate b/c playing with changing position of cam
@@ -191,6 +300,7 @@ public class AstroCamera : MonoBehaviour
 
 
         ZoomFixedUpdate();
+        TTFadeFixedUpdate();
 
         //TODO: maybe add an effect to only use these bounds if starting from rest and normal centered
         //(like not when coming back to center)
@@ -201,6 +311,7 @@ public class AstroCamera : MonoBehaviour
 
         transform.position = Vector3.Lerp(transform.position, astroPlayerPos + offset3D, smoothSpeed * Time.fixedDeltaTime);
     }
+
 
     private bool OutOfMoveThreshold()
     {
@@ -222,8 +333,46 @@ public class AstroCamera : MonoBehaviour
         {
             return;
         }
-        currTime = Mathf.Min(currTime + Time.fixedDeltaTime / zoomTime, 1f);
-        float smoothStep = Mathf.SmoothStep(0, 1f, currTime);
+        currZoomTime = Mathf.Min(currZoomTime + Time.fixedDeltaTime / zoomTime, 1f);
+        float smoothStep = Mathf.SmoothStep(0, 1f, currZoomTime);
         camComponent.orthographicSize = Mathf.Lerp(prevZoom, targetZoom, smoothStep);
+    }
+
+    private void TTFadeFixedUpdate()
+    {
+        if (!ttFadingOut && !ttFadingIn)
+        {
+            return;
+        }
+
+        if (ttFadingOut)
+        {
+            float nextAlpha = Mathf.Min(blackFade.color.a + ttFadeOutStep, 1f);
+            blackFade.color = new Color(0, 0, 0, nextAlpha);
+            if (nextAlpha >= 1f)
+            {
+                ttFadingOut = false;
+                zoomAreaBeforeTT = zoomStack.Count > 0 ? zoomStack[zoomStack.Count - 1].ZoomArea : null;
+                FadeOutComplete();
+                StartCoroutine(DelayTimeTravelFadeIn());
+            }
+        }
+        else if (ttFadingIn)
+        {
+            float nextAlpha = Mathf.Max(blackFade.color.a + ttFadeInStep, 0f);
+            blackFade.color = new Color(0, 0, 0, nextAlpha);
+            if (nextAlpha <= 0f)
+            {
+                ttFadingIn = false;
+                FadeInComplete();
+            }
+        }
+    }
+
+
+    IEnumerator DelayTimeTravelFadeIn()
+    {
+        yield return new WaitForSeconds(ttFadeInDelayTime);
+        ttFadingIn = true;
     }
 }
