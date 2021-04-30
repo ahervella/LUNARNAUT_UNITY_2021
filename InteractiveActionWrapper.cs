@@ -21,6 +21,12 @@ public class InteractiveActionWrapper
     [Serializable]
     public class EmitterContainer
     {
+        public enum START_OR_STOP {START, STOP};
+
+        [SerializeField]
+        private START_OR_STOP startOrStop = START_OR_STOP.START;
+        public START_OR_STOP StartOrStop => startOrStop;
+
         [SerializeField]
         private EmitterSource otherEmitter;
         public EmitterSource OtherEmitter => otherEmitter;
@@ -28,6 +34,10 @@ public class InteractiveActionWrapper
         [SerializeField]
         private float soundDelay = 0;
         public float SoundDelay => soundDelay;
+
+        [SerializeField]
+        private int stopTransTime = 0;
+        public int StopTransTime => stopTransTime;
     }
 
     [SerializeField]
@@ -50,11 +60,11 @@ public class InteractiveActionWrapper
         {
             if (aint.Audio3DSource == null)
             {
-                aint.StartCoroutine(DelayPlaySound(soundDelay, SoundEvent, aint.gameObject));
+                aint.StartCoroutine(DelaySoundEvent(aint.gameObject));
             }
             else
             {
-                aint.StartCoroutine(DelayPlaySound(soundDelay, SoundEvent, aint.Audio3DSource));
+                aint.StartCoroutine(DelaySoundEvent(aint.Audio3DSource));
             }
         }
     }
@@ -72,7 +82,7 @@ public class InteractiveActionWrapper
             {
                 continue;
             }
-            sourceObjMono.StartCoroutine(DelayPlaySound(emitc.SoundDelay, emitc.OtherEmitter.SoundEvent, emitc.OtherEmitter.gameObject));
+            sourceObjMono.StartCoroutine(DelayEmitterEvent(emitc));
         }
     }
 
@@ -88,9 +98,9 @@ public class InteractiveActionWrapper
         TryTextAnim(aint);
     }
 
-    protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent, GameObject soundObject)
+    protected IEnumerator DelaySoundEvent(GameObject soundObject)
     {
-        yield return new WaitForSeconds(delay);
+        yield return new WaitForSeconds(SoundDelay);
 
         if (soundObject == null)
         {
@@ -98,5 +108,20 @@ public class InteractiveActionWrapper
         }
 
         soundEvent.Post(soundObject);
+    }
+
+    protected IEnumerator DelayEmitterEvent(EmitterContainer emitc)
+    {
+        yield return new WaitForSeconds(emitc.SoundDelay);
+        if (emitc.StartOrStop == EmitterContainer.START_OR_STOP.START)
+        {
+            emitc.OtherEmitter.PlaySound();
+            Debug.LogFormat("Started sound on: {0}", emitc.OtherEmitter.gameObject.name);
+        }
+        else
+        {
+            emitc.OtherEmitter.StopSound(emitc.StopTransTime);
+            Debug.LogFormat("Stopped sound on: {0}", emitc.OtherEmitter.gameObject.name);
+        }
     }
 }

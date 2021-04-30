@@ -11,6 +11,11 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
     public event System.Action ParseAstroTTD = delegate { };
     public event System.Action UpdateCamera = delegate { };
 
+    [SerializeField]
+    private AK.Wwise.State timeStateFuture;
+    [SerializeField]
+    private AK.Wwise.State timeStatePast;
+
     private TIME_PERIOD timeline = TIME_PERIOD.FUTURE;
     public TIME_PERIOD Timeline
     {
@@ -24,6 +29,7 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
             }
 
             timeline = value;
+            UpdateWwiseTimeState();
             ComposeAstroTTD();
             TimelineChanged();
             ParseAstroTTD();
@@ -64,6 +70,18 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
         if (S_DeveloperTools.Current.DevToolsEnabled_TIME_TRAVEL())
         {
             PlayerTimeTravelEnabled = S_DeveloperTools.Current.TogglePlayerEnableTimeTravel;
+        }
+    }
+
+    private void UpdateWwiseTimeState()
+    {
+        if (Timeline == TIME_PERIOD.FUTURE)
+        {
+           timeStateFuture.SetValue();
+        }
+        if (Timeline == TIME_PERIOD.PAST)
+        {
+            timeStatePast.SetValue();
         }
     }
 

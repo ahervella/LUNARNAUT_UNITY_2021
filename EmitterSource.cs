@@ -12,4 +12,8 @@ public class EmitterSource : MonoBehaviour
     {
         soundEvent.Post(gameObject);
     }
+    public void StopSound(int transTime)
+    {
+        soundEvent.Stop(gameObject, transTime);
+    }
 }
