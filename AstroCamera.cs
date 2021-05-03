@@ -477,12 +477,14 @@ public class AstroCamera : MonoBehaviour
         camComponent.orthographicSize = Mathf.Lerp(prevZoom, targetZoom, smoothStep);
     }
 
+    float shakeTransitionTime = 3f;
 
-    private IEnumerator NextSingleCameraShake(float shakeMaxCenterOffset, bool infinite = false, float durationLeft  = 0)
+    private IEnumerator NextSingleCameraShake(float shakeMaxCenterOffset, bool infinite = false, float durationLeft  = 0, float timePassed = 0)
     {
         float randomCenterOffset = Random.Range(0, shakeMaxCenterOffset);
+        float lerpedRandomCenterOffset = Mathf.Lerp(0, randomCenterOffset, timePassed / shakeTransitionTime);
         float randomRadAngle = Random.Range(0, 2 * Mathf.PI);
-        Vector2 randomVector = new Vector2(Mathf.Cos(randomRadAngle), Mathf.Sin(randomRadAngle)) * randomCenterOffset;
+        Vector2 randomVector = new Vector2(Mathf.Cos(randomRadAngle), Mathf.Sin(randomRadAngle)) * lerpedRandomCenterOffset;
         shakeOffset3D = new Vector3(randomVector.x, randomVector.y);
 
         if (!infinite && durationLeft <= 0)
@@ -493,7 +495,7 @@ public class AstroCamera : MonoBehaviour
 
         float randomChangeTime = Random.Range(Time.fixedDeltaTime, shakeOffsetChangeMaxTime);
         yield return new WaitForSeconds(randomChangeTime);
-        yield return NextSingleCameraShake(shakeMaxCenterOffset, infinite, durationLeft - randomChangeTime);
+        yield return NextSingleCameraShake(shakeMaxCenterOffset, infinite, durationLeft - randomChangeTime, timePassed + randomChangeTime);
     }
 
     private void TTFadeFixedUpdate()
