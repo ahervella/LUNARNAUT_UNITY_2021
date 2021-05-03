@@ -6,6 +6,6 @@ public class SO_RA_GoToFuture : SO_Reaction
     public override void Execute()
     {
         Debug.Log("Attempting to time traveling to the future...");
-        S_TimeTravel.Current.Timeline = S_TimeTravel.TIME_PERIOD.FUTURE;
+        S_TimeTravel.Current.InitTimeTravel(S_TimeTravel.TIME_PERIOD.FUTURE);
     }
 }

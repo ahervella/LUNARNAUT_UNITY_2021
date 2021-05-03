@@ -6,6 +6,6 @@ public class SO_RA_GoToPast : SO_Reaction
     public override void Execute()
     {
         Debug.Log("Attempting to time traveling to the past...");
-        S_TimeTravel.Current.Timeline = S_TimeTravel.TIME_PERIOD.PAST;
+        S_TimeTravel.Current.InitTimeTravel(S_TimeTravel.TIME_PERIOD.PAST);
     }
 }
