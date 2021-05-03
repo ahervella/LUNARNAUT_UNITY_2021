@@ -3,11 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 [RequireComponent(typeof(Camera))]
 public class AstroCamera : MonoBehaviour
 {
     public enum ZOOM { NORM, CLOSE, WIDE, EXTRA_WIDE }
+    public enum SHAKE { LIGHT, MED, HEAVY, COLLOSAL }
 
     [SerializeField]
     private Transform astroPlayer;
@@ -30,10 +32,7 @@ public class AstroCamera : MonoBehaviour
     List<ZoomKeyVal> zoomValues;
 
     private List<ZoomWrapper> zoomStack = new List<ZoomWrapper>();
-    private ZoomArea zoomAreaBeforeTT = null;
-
     private Dictionary<ZOOM, float> zoomDict = new Dictionary<ZOOM, float>();
-
 
     [Serializable]
     private class ZoomKeyVal
@@ -57,6 +56,47 @@ public class AstroCamera : MonoBehaviour
 
         public ZoomArea ZoomArea { get; private set; }
         public ZOOM ZoomType { get; private set; }
+    }
+
+
+    [SerializeField]
+    private float shakeOffsetChangeMaxTime = 0.5f;
+    [SerializeField]
+    private float shakeSmoothSpeed = 3f;
+    private float currSmoothSpeed;
+    [SerializeField]
+    private List<ShakeKeyVal> shakeValues;
+
+    private List<ShakeWrapper> shakeStack = new List<ShakeWrapper>();
+    private CameraShakeArea shakeAreaBeforeTT = null;
+    private Dictionary<SHAKE, float> shakeDict = new Dictionary<SHAKE, float>();
+    private Coroutine shakeCR;
+    private Vector3 shakeOffset3D;
+
+    [Serializable]
+    private class ShakeKeyVal
+    {
+        [SerializeField]
+        private SHAKE shakeType;
+        public SHAKE ShakeType => shakeType;
+
+        [SerializeField]
+        private float shakeVal;
+        public float ShakeVal => shakeVal;
+    }
+
+    private class ShakeWrapper
+    {
+        public ShakeWrapper(CameraShakeArea shakeArea, SHAKE shakeType, float duration)
+        {
+            ShakeArea = shakeArea;
+            ShakeType = shakeType;
+            Duration = duration;
+        }
+
+        public CameraShakeArea ShakeArea { get; private set; }
+        public SHAKE ShakeType { get; private set; }
+        public float Duration { get; private set; }
     }
 
     private Camera camComponent;
@@ -93,6 +133,7 @@ public class AstroCamera : MonoBehaviour
     private void Awake()
     {
         camComponent = GetComponent<Camera>();
+        currSmoothSpeed = smoothSpeed;
 
         if (astroPlayer == null)
         {
@@ -110,6 +151,7 @@ public class AstroCamera : MonoBehaviour
         
 
         SetZoomDict();
+        SetShakeDict();
         //InstantSetZoom(S_TimeTravel.Current.InFuture() ? futureZoom : pastZoom);
 
         SetOffset3D();
@@ -136,12 +178,17 @@ public class AstroCamera : MonoBehaviour
         S_TimeTravel.Current.UpdateCamera += S_TimeTravel_UpdateCamera;
         S_TimeTravel.Current.InitTimeTravelFade += S_TimeTravel_InitTimeTravelFade;
 
-        ZoomArea.EnteredZoomArea -= ZoomArea_EnteredZoom;
-        ZoomArea.EnteredZoomArea += ZoomArea_EnteredZoom;
+        ZoomArea.EnteredZoomArea -= ZoomArea_EnteredZoomArea;
+        ZoomArea.EnteredZoomArea += ZoomArea_EnteredZoomArea;
 
-        ZoomArea.ExitedZoomArea -= ZoomArea_ExitedZoom;
-        ZoomArea.ExitedZoomArea += ZoomArea_ExitedZoom;
+        ZoomArea.ExitedZoomArea -= ZoomArea_ExitedZoomArea;
+        ZoomArea.ExitedZoomArea += ZoomArea_ExitedZoomArea;
 
+        CameraShakeArea.EnteredShakeArea -= CameraShakeArea_EnteredShakeArea;
+        CameraShakeArea.EnteredShakeArea += CameraShakeArea_EnteredShakeArea;
+
+        CameraShakeArea.ExitedShakeArea -= CameraShakeArea_ExitedShakeArea;
+        CameraShakeArea.ExitedShakeArea += CameraShakeArea_ExitedShakeArea;
     }
 
     
@@ -153,14 +200,17 @@ public class AstroCamera : MonoBehaviour
     {
         InstantSetCameraToAstro();
 
-        if (zoomStack.Count > 0)
-        {
-            nextZoomSetInstant = zoomAreaBeforeTT != zoomStack[zoomStack.Count - 1].ZoomArea;
-        }
-        else
-        {
-            nextZoomSetInstant = zoomAreaBeforeTT != null;
-        }
+        nextZoomSetInstant = true;
+        StartCoroutine(ResetZoomSetInstant());
+    }
+
+    //hack so that if no new area ONTriggerEntered recieved in the frame we time traveled,
+    //must mean they are the same area so turn off.
+    private IEnumerator ResetZoomSetInstant()
+    {
+        //end of frame did not work, needed to wait for next frame (via null)
+        yield return null;
+        nextZoomSetInstant = false;
     }
 
     private void InstantSetCameraToAstro()
@@ -186,6 +236,21 @@ public class AstroCamera : MonoBehaviour
         targetZoom = zoomDict[currZoomType];
     }
 
+    private void SetShakeDict()
+    {
+        foreach (ShakeKeyVal skv in shakeValues)
+        {
+            if (shakeDict.ContainsKey(skv.ShakeType))
+            {
+                shakeDict[skv.ShakeType] = skv.ShakeVal;
+            }
+            else
+            {
+                shakeDict.Add(skv.ShakeType, skv.ShakeVal);
+            }
+        }
+    }
+
     private void SetOffset3D()
     {
         float multiplyer = Mathf.Sign(offset3D.x);
@@ -205,7 +270,7 @@ public class AstroCamera : MonoBehaviour
     }
 
 
-    private void ZoomArea_EnteredZoom(ZoomArea zoomArea, ZOOM zoomType)
+    private void ZoomArea_EnteredZoomArea(ZoomArea zoomArea, ZOOM zoomType)
     {
 
         if (GetZoomWrapperFromStack(zoomArea) != null)
@@ -219,7 +284,7 @@ public class AstroCamera : MonoBehaviour
         ChangeCameraZoom(zoomType);
     }
 
-    private void ZoomArea_ExitedZoom(ZoomArea zoomArea, ZOOM zoomType)
+    private void ZoomArea_ExitedZoomArea(ZoomArea zoomArea, ZOOM zoomType)
     {
         ZoomWrapper zw = GetZoomWrapperFromStack(zoomArea);
         if (zw == null)
@@ -247,7 +312,6 @@ public class AstroCamera : MonoBehaviour
 
         return null;
     }
-
 
     private void ChangeCameraZoom(ZOOM newZoom)
     {
@@ -281,6 +345,80 @@ public class AstroCamera : MonoBehaviour
         camComponent.orthographicSize = targetZoom;
     }
 
+    private void CameraShakeArea_EnteredShakeArea(CameraShakeArea shakeArea, SHAKE shakeType, float duration)
+    {
+
+        if (GetShakeWrapperFromStack(shakeArea) != null)
+        {
+            Debug.LogErrorFormat("Some shit went real wrong trying to add CameraShakeArea: {0} to the shake stack but already in stack.", shakeArea.name);
+            return;
+        }
+
+        ShakeWrapper newSW = new ShakeWrapper(shakeArea, shakeType, duration);
+        shakeStack.Add(newSW);
+
+        ChangeCameraShake(newSW);
+    }
+
+    private void CameraShakeArea_ExitedShakeArea(CameraShakeArea shakeArea, SHAKE shakeType, float duration)
+    {
+        ShakeWrapper sw = GetShakeWrapperFromStack(shakeArea);
+        if (sw == null)
+        {
+            Debug.LogErrorFormat("Tried to remove CameraShakeArea: {0} from the shake stack but not in stack.", shakeArea.name);
+            return;
+        }
+
+        shakeStack.Remove(sw);
+
+        if (shakeStack.Count > 0)
+        {
+            ShakeWrapper lastSW = shakeStack[shakeStack.Count - 1];
+            ChangeCameraShake(lastSW);
+        }
+        else if (IsShakeInfinite(sw))
+        {
+            StopShaking();
+        }
+    }
+
+    private ShakeWrapper GetShakeWrapperFromStack(CameraShakeArea shakeArea)
+    {
+        foreach (ShakeWrapper sw in shakeStack)
+        {
+            if (sw.ShakeArea == shakeArea)
+            {
+                return sw;
+            }
+        }
+
+        return null;
+    }
+
+    private void ChangeCameraShake(ShakeWrapper sw)
+    {
+        StopShaking();
+        bool infiniteShake = IsShakeInfinite(sw);
+        shakeCR = StartCoroutine(NextSingleCameraShake(shakeDict[sw.ShakeType], infiniteShake, sw.Duration));
+        currSmoothSpeed = shakeSmoothSpeed;
+    }
+
+    private bool IsShakeInfinite(ShakeWrapper sw)
+    {
+        return sw.Duration <= 0;
+    }
+
+    private void StopShaking()
+    {
+        if (shakeCR != null)
+        {
+            StopCoroutine(shakeCR);
+            shakeCR = null;
+        }
+        shakeOffset3D = Vector3.zero;
+        currSmoothSpeed = smoothSpeed;
+    }
+
     private void S_TimeTravel_InitTimeTravelFade()
     {
         ttFadeOutStep = Time.fixedDeltaTime / ttFadeOutTime;
@@ -295,6 +433,7 @@ public class AstroCamera : MonoBehaviour
         if (testUpdatingValues)
         {
             SetZoomDict();
+            SetShakeDict();
             SetOffset3D();
         }
 
@@ -309,7 +448,7 @@ public class AstroCamera : MonoBehaviour
             UpdateCachedAstroPos();
         }
 
-        transform.position = Vector3.Lerp(transform.position, astroPlayerPos + offset3D, smoothSpeed * Time.fixedDeltaTime);
+        transform.position = Vector3.Lerp(transform.position, astroPlayerPos + offset3D + shakeOffset3D, currSmoothSpeed * Time.fixedDeltaTime);
     }
 
 
@@ -338,6 +477,25 @@ public class AstroCamera : MonoBehaviour
         camComponent.orthographicSize = Mathf.Lerp(prevZoom, targetZoom, smoothStep);
     }
 
+
+    private IEnumerator NextSingleCameraShake(float shakeMaxCenterOffset, bool infinite = false, float durationLeft  = 0)
+    {
+        float randomCenterOffset = Random.Range(0, shakeMaxCenterOffset);
+        float randomRadAngle = Random.Range(0, 2 * Mathf.PI);
+        Vector2 randomVector = new Vector2(Mathf.Cos(randomRadAngle), Mathf.Sin(randomRadAngle)) * randomCenterOffset;
+        shakeOffset3D = new Vector3(randomVector.x, randomVector.y);
+
+        if (!infinite && durationLeft <= 0)
+        {
+            StopShaking();
+            yield break;
+        }
+
+        float randomChangeTime = Random.Range(Time.fixedDeltaTime, shakeOffsetChangeMaxTime);
+        yield return new WaitForSeconds(randomChangeTime);
+        yield return NextSingleCameraShake(shakeMaxCenterOffset, infinite, durationLeft - randomChangeTime);
+    }
+
     private void TTFadeFixedUpdate()
     {
         if (!ttFadingOut && !ttFadingIn)
@@ -352,7 +510,6 @@ public class AstroCamera : MonoBehaviour
             if (nextAlpha >= 1f)
             {
                 ttFadingOut = false;
-                zoomAreaBeforeTT = zoomStack.Count > 0 ? zoomStack[zoomStack.Count - 1].ZoomArea : null;
                 FadeOutComplete();
                 StartCoroutine(DelayTimeTravelFadeIn());
             }
@@ -375,4 +532,5 @@ public class AstroCamera : MonoBehaviour
         yield return new WaitForSeconds(ttFadeInDelayTime);
         ttFadingIn = true;
     }
+
 }
