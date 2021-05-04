@@ -72,6 +72,8 @@ public class AstroCamera : MonoBehaviour
     private Dictionary<SHAKE, float> shakeDict = new Dictionary<SHAKE, float>();
     private Coroutine shakeCR;
     private Vector3 shakeOffset3D;
+    private Coroutine delayedReactionShakeCR;
+    private Coroutine delayedEndEaseFadeCR;
 
     [Serializable]
     private class ShakeKeyVal
@@ -87,16 +89,20 @@ public class AstroCamera : MonoBehaviour
 
     private class ShakeWrapper
     {
-        public ShakeWrapper(CameraShakeArea shakeArea, SHAKE shakeType, float duration)
+        public ShakeWrapper(CameraShakeArea shakeArea, SHAKE shakeType, float duration, float easeInTime, float easeOutTime)
         {
             ShakeArea = shakeArea;
             ShakeType = shakeType;
             Duration = duration;
+            EaseInTime = easeInTime;
+            EaseOutTime = easeOutTime;
         }
 
         public CameraShakeArea ShakeArea { get; private set; }
         public SHAKE ShakeType { get; private set; }
         public float Duration { get; private set; }
+        public float EaseInTime { get; private set; }
+        public float EaseOutTime { get; private set; }
     }
 
     private Camera camComponent;
@@ -189,6 +195,9 @@ public class AstroCamera : MonoBehaviour
 
         CameraShakeArea.ExitedShakeArea -= CameraShakeArea_ExitedShakeArea;
         CameraShakeArea.ExitedShakeArea += CameraShakeArea_ExitedShakeArea;
+
+        SO_RA_CameraShake.NewReactionShake -= SO_RA_CameraShake_NewReactionShake;
+        SO_RA_CameraShake.NewReactionShake += SO_RA_CameraShake_NewReactionShake;
     }
 
     
@@ -345,7 +354,7 @@ public class AstroCamera : MonoBehaviour
         camComponent.orthographicSize = targetZoom;
     }
 
-    private void CameraShakeArea_EnteredShakeArea(CameraShakeArea shakeArea, SHAKE shakeType, float duration)
+    private void CameraShakeArea_EnteredShakeArea(CameraShakeArea shakeArea, SHAKE shakeType, float duration, float easeInTime, float easeOutTime)
     {
 
         if (GetShakeWrapperFromStack(shakeArea) != null)
@@ -354,13 +363,13 @@ public class AstroCamera : MonoBehaviour
             return;
         }
 
-        ShakeWrapper newSW = new ShakeWrapper(shakeArea, shakeType, duration);
+        ShakeWrapper newSW = new ShakeWrapper(shakeArea, shakeType, duration, easeInTime, easeOutTime);
         shakeStack.Add(newSW);
 
         ChangeCameraShake(newSW);
     }
 
-    private void CameraShakeArea_ExitedShakeArea(CameraShakeArea shakeArea, SHAKE shakeType, float duration)
+    private void CameraShakeArea_ExitedShakeArea(CameraShakeArea shakeArea, SHAKE shakeType, float duration, float easeInTime, float easeOutTime)
     {
         ShakeWrapper sw = GetShakeWrapperFromStack(shakeArea);
         if (sw == null)
@@ -382,6 +391,18 @@ public class AstroCamera : MonoBehaviour
         }
     }
 
+    private void SO_RA_CameraShake_NewReactionShake(SHAKE shakeType, float duration, float delay, float easeInTime, float easeOutTime)
+    {
+        delayedReactionShakeCR = StartCoroutine(DelayedNewReactionShake(shakeType, duration, delay, easeInTime, easeOutTime));
+        //TODO: have it so we trigger a shake area we may be in? Currently we'd need to exit the shake area and come back for this to happen
+    }
+
+    private IEnumerator DelayedNewReactionShake(SHAKE shakeType, float duration, float delay, float easeInTime, float easeOutTime)
+    {
+        yield return new WaitForSeconds(delay);
+        ChangeCameraShake(shakeType, duration, easeInTime, easeOutTime);
+    }
+
     private ShakeWrapper GetShakeWrapperFromStack(CameraShakeArea shakeArea)
     {
         foreach (ShakeWrapper sw in shakeStack)
@@ -397,10 +418,30 @@ public class AstroCamera : MonoBehaviour
 
     private void ChangeCameraShake(ShakeWrapper sw)
     {
-        StopShaking();
         bool infiniteShake = IsShakeInfinite(sw);
-        shakeCR = StartCoroutine(NextSingleCameraShake(shakeDict[sw.ShakeType], infiniteShake, sw.Duration));
+        ChangeCameraShake(sw.ShakeType, sw.Duration, sw.EaseInTime, sw.EaseOutTime, infiniteShake);
+    }
+
+    private void ChangeCameraShake(SHAKE shakeType, float duration, float easeInTime, float easeOutTime, bool infiniteShake = false)
+    {
+        if ((easeInTime + easeOutTime) > duration && !infiniteShake)
+        {
+            Debug.LogErrorFormat("There is a camera shake that has longer easing than it lasts (and is not suppose to be infinite), no bueno! Duration: {0}, EaseIn: {1}, EaseOut: {2}", duration, easeInTime, easeOutTime);
+            return;
+        }
+        StopShaking();
+        shakeEaseTime = easeInTime;
+        BeginShakeEase(easingIn: true);
+        delayedEndEaseFadeCR = StartCoroutine(DelayedShakeEaseOut(duration - easeInTime, easeOutTime));
+        shakeCR = StartCoroutine(NextSingleCameraShake(shakeDict[shakeType], infiniteShake, duration));
         currSmoothSpeed = shakeSmoothSpeed;
+    }
+
+    private IEnumerator DelayedShakeEaseOut(float delay, float easeOutTime)
+    {
+        yield return new WaitForSeconds(delay);
+        shakeEaseTime = easeOutTime;
+        BeginShakeEase(easingIn: false);
     }
 
     private bool IsShakeInfinite(ShakeWrapper sw)
@@ -415,6 +456,19 @@ public class AstroCamera : MonoBehaviour
             StopCoroutine(shakeCR);
             shakeCR = null;
         }
+
+        if (delayedReactionShakeCR != null)
+        {
+            StopCoroutine(delayedReactionShakeCR);
+            delayedReactionShakeCR = null;
+        }
+
+        if (delayedEndEaseFadeCR != null)
+        {
+            StopCoroutine(delayedEndEaseFadeCR);
+            delayedEndEaseFadeCR = null;
+        }
+
         shakeOffset3D = Vector3.zero;
         currSmoothSpeed = smoothSpeed;
     }
@@ -439,6 +493,7 @@ public class AstroCamera : MonoBehaviour
 
 
         ZoomFixedUpdate();
+        ShakeFixedUpdate();
         TTFadeFixedUpdate();
 
         //TODO: maybe add an effect to only use these bounds if starting from rest and normal centered
@@ -477,12 +532,33 @@ public class AstroCamera : MonoBehaviour
         camComponent.orthographicSize = Mathf.Lerp(prevZoom, targetZoom, smoothStep);
     }
 
-    float shakeTransitionTime = 3f;
+    float shakeEaseTime = 3f;
+    float shakeEaseCounter = 1f;
+    float shakeEaseStep = 0f;
+    float shakeEaseMultiplyer = 0f;
 
-    private IEnumerator NextSingleCameraShake(float shakeMaxCenterOffset, bool infinite = false, float durationLeft  = 0, float timePassed = 0)
+    private void BeginShakeEase(bool easingIn)
+    {
+        float fadeMultiplyer = easingIn ? 1f : -1f;
+        shakeEaseStep = Time.fixedDeltaTime / shakeEaseTime * fadeMultiplyer;
+        shakeEaseCounter = 0f;
+    }
+
+    private void ShakeFixedUpdate()
+    {
+        if (shakeEaseCounter >= 1f)
+        {
+            return;
+        }
+        shakeEaseMultiplyer += shakeEaseStep;
+        shakeEaseMultiplyer = Mathf.Clamp(shakeEaseMultiplyer, 0f, 1f);
+
+    }
+
+    private IEnumerator NextSingleCameraShake(float shakeMaxCenterOffset, bool infinite = false, float durationLeft  = 0)
     {
         float randomCenterOffset = Random.Range(0, shakeMaxCenterOffset);
-        float lerpedRandomCenterOffset = Mathf.Lerp(0, randomCenterOffset, timePassed / shakeTransitionTime);
+        float lerpedRandomCenterOffset = Mathf.Lerp(0, randomCenterOffset, shakeEaseMultiplyer);
         float randomRadAngle = Random.Range(0, 2 * Mathf.PI);
         Vector2 randomVector = new Vector2(Mathf.Cos(randomRadAngle), Mathf.Sin(randomRadAngle)) * lerpedRandomCenterOffset;
         shakeOffset3D = new Vector3(randomVector.x, randomVector.y);
@@ -495,7 +571,7 @@ public class AstroCamera : MonoBehaviour
 
         float randomChangeTime = Random.Range(Time.fixedDeltaTime, shakeOffsetChangeMaxTime);
         yield return new WaitForSeconds(randomChangeTime);
-        yield return NextSingleCameraShake(shakeMaxCenterOffset, infinite, durationLeft - randomChangeTime, timePassed + randomChangeTime);
+        yield return NextSingleCameraShake(shakeMaxCenterOffset, infinite, durationLeft - randomChangeTime);
     }
 
     private void TTFadeFixedUpdate()

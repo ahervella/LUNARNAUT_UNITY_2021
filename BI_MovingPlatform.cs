@@ -22,6 +22,9 @@ public class BI_MovingPlatform : BasicInteractive
     private float moveTime = 3f;
 
     [SerializeField]
+    private float moveDelay = 0f;
+
+    [SerializeField]
     private List<SO_Reaction> onMoveStartReactions;
 
     [SerializeField]
@@ -69,6 +72,9 @@ public class BI_MovingPlatform : BasicInteractive
     private float totalDist;
     private float moveTimeStep;
     private float currTime = 1f;
+    private Coroutine delayedMoveCR;
+    private Coroutine delayedStartSound;
+    private Coroutine delayedEndSound;
 
 
     private List<Vector3> wayPointsPos = new List<Vector3>();
@@ -206,13 +212,13 @@ public class BI_MovingPlatform : BasicInteractive
             else
             {
                 //THE SOUND OBJECT NEEDS TO BE THE SAME FOR THE START AND STOP IN ORDER FOR THE STOP TO WORK IN WWISE
-                StartCoroutine(DelayPlaySound(onMoveStartSound.SoundOffset, onMoveStartSound.SoundEvent));
+                delayedStartSound = StartCoroutine(DelayPlaySound(onMoveStartSound.SoundOffset, onMoveStartSound.SoundEvent));
             }
         }
 
         if (onMoveEndSound?.SoundEvent != null)
         {
-            float onEndDelay = moveTime + onMoveEndSound.SoundOffset;
+            float onEndDelay = moveTime + onMoveEndSound.SoundOffset + moveDelay;
             if (onEndDelay <= 0)
             {
                 Debug.LogError(String.Format("On move end sound offset from object {0} and parent object {1} is too small with moveTime!", gameObject.name, transform.parent.gameObject.name));
@@ -220,17 +226,26 @@ public class BI_MovingPlatform : BasicInteractive
 
             else
             {
-                StartCoroutine(DelayPlaySound(onEndDelay, onMoveEndSound.SoundEvent));
+                delayedEndSound = StartCoroutine(DelayPlaySound(onEndDelay, onMoveEndSound.SoundEvent));
             }
         }
-        
+
+        delayedMoveCR = StartCoroutine(DelayedStart());
+    }
+
+    private IEnumerator DelayedStart()
+    {
+        if (moveDelay > 0f)
+        {
+            yield return new WaitForSeconds(moveDelay);
+        }
         currTime = 0f;
     }
 
     protected bool TweenInProgress()
     {
         //if in progress, don't interrupt
-        return currTime < 1f;
+        return currTime < 1f || delayedMoveCR != null;
     }
 
     protected IEnumerator DelayPlaySound(float delay, AK.Wwise.Event soundEvent)
@@ -256,10 +271,35 @@ public class BI_MovingPlatform : BasicInteractive
 
     private void ResetAndReverseWP()
     {
+        StopDelayedMoveCRs();
         ExecuteAllReactions(onMoveEndReactions);
         wayPointsPos.Reverse();
         wayPointsRot.Reverse();
         ResetAndChangeWPs(wayPointsPos, wayPointsRot);
+    }
+
+    private void StopDelayedMoveCRs()
+    {
+        if (delayedMoveCR != null)
+        {
+            StopCoroutine(delayedMoveCR);
+        }
+        delayedMoveCR = null;
+
+        //TODO: incorperate into new system
+        /*
+        if (delayedStartSound != null)
+        {
+            StopCoroutine(delayedStartSound);
+        }
+        delayedStartSound = null;
+
+        if (delayedEndSound != null)
+        {
+            StopCoroutine(delayedEndSound);
+        }
+        delayedEndSound = null;
+        */
     }
 
     private void ResetAndChangeWPs(List<Vector3> positions, List<float> rotations)

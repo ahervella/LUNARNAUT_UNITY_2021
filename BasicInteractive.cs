@@ -132,6 +132,11 @@ public class BasicInteractive : A_Interactive
 
         foreach (SO_BoolArgument arg in interactArguments)
         {
+            if (arg == null)
+            {
+                Debug.LogErrorFormat("The interactive {0} has an empty BoolArgument, fix that!", name);
+                continue;
+            }
             if (!arg.IsTrue())
             {
                 return false;
@@ -150,6 +155,11 @@ public class BasicInteractive : A_Interactive
 
         foreach (SO_Reaction ra in reactions)
         {
+            if (ra == null)
+            {
+                Debug.LogErrorFormat("The interactive {0} has an empty Reaction, fix that!", name);
+                continue;
+            }
             ra.Execute();
         }
     }
