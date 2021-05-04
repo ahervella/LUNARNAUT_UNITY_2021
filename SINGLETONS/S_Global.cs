@@ -47,6 +47,10 @@ public class S_Global : Singleton<S_Global>
         [SerializeField]
         private VarContainer<bool> brainLabActivated = new VarContainer<bool>(false);
         public bool BRAIN_LAB_ACTIVATED { get => brainLabActivated.CurrVar; set { brainLabActivated.CurrVar = value; } }
+
+        [SerializeField]
+        private VarContainer<int> brainCoresActive = new VarContainer<int>(1);
+        public int BRAIN_CORES_ACTIVE { get => brainCoresActive.CurrVar; set { brainCoresActive.CurrVar = value; }  }
     }
 
     private static event System.Action ResetVarContainersToDevaultValues = delegate { };
