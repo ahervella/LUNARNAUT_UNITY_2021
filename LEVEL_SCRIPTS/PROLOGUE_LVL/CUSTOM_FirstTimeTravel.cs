@@ -9,6 +9,8 @@ public class CUSTOM_FirstTimeTravel : MonoBehaviour
     [SerializeField]
     private AstroCamera astroCam;
     [SerializeField]
+    private float delayWholeEffect;
+    [SerializeField]
     private float timeTillBlack;
     [SerializeField]
     private float timeSpentInBlack;
@@ -29,6 +31,12 @@ public class CUSTOM_FirstTimeTravel : MonoBehaviour
     private void SO_RA_FirstTimeTravel_OnFirstTimeTravel()
     {
         S_AstroInputManager.Current.ControlsEnabled = false;
+        StartCoroutine(DelayedEffectStart(delayWholeEffect));
+    }
+
+    private IEnumerator DelayedEffectStart(float delay)
+    {
+        yield return new WaitForSeconds(delay);
         //Hack to start playing it
         animator.enabled = true;
         StartCoroutine(delayTimeTravel(timeTillBlack + timeSpentInBlack));
