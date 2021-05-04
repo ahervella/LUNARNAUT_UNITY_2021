@@ -123,6 +123,7 @@ public class AstroCamera : MonoBehaviour
 
     [SerializeField]
     private float ttFadeOutTime = 1;
+    public float TTFadeOut => ttFadeOutTime;
     [SerializeField]
     private float ttFadeInDelayTime = 0.5f;
     [SerializeField]
