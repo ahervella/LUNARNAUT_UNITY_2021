@@ -50,10 +50,18 @@ public class S_Global : Singleton<S_Global>
 
         [SerializeField]
         private VarContainer<int> brainCoresActive = new VarContainer<int>(1);
-        public int BRAIN_CORES_ACTIVE { get => brainCoresActive.CurrVar; set { brainCoresActive.CurrVar = value; }  }
+        public int BRAIN_CORES_ACTIVE
+        {
+            get => brainCoresActive.CurrVar;
+            set
+            {
+                brainCoresActive.CurrVar = value;
+            }
+        }
+
     }
 
-    private static event System.Action ResetVarContainersToDevaultValues = delegate { };
+    private static event System.Action ResetVarContainersToDefaultValues = delegate { };
     private static event System.Action EnableInspectorLevelVariablesChanged = delegate { };
 
     private void Awake()
@@ -64,7 +72,7 @@ public class S_Global : Singleton<S_Global>
 
         if (!S_DeveloperTools.Current.DevToolsEnabled_TIME_TRAVEL() || !S_DeveloperTools.Current.EnableInspectorLevelVariables)
         {
-            ResetVarContainersToDevaultValues();
+            ResetVarContainersToDefaultValues();
         }
 
         S_DeveloperTools_EnableInspectorLevelVariablesChanged();
@@ -83,8 +91,8 @@ public class S_Global : Singleton<S_Global>
         public VarContainer(T defaultVal)
         {
             DefaultVal = defaultVal;
-            ResetVarContainersToDevaultValues -= ResetToDefaultValue;
-            ResetVarContainersToDevaultValues += ResetToDefaultValue;
+            ResetVarContainersToDefaultValues -= ResetToDefaultValue;
+            ResetVarContainersToDefaultValues += ResetToDefaultValue;
 
             EnableInspectorLevelVariablesChanged -= S_DeveloperTools_EnableInspectorLevelVariablesChanged;
             EnableInspectorLevelVariablesChanged += S_DeveloperTools_EnableInspectorLevelVariablesChanged;
