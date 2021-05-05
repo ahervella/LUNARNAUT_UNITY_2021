@@ -18,6 +18,13 @@ public class InteractiveActionWrapper
     private float soundDelay;
     public float SoundDelay => soundDelay;
 
+    [SerializeField]
+    private List<GameObject> enableList;
+    //public List<GameObject> EnableList => enableList;
+    [SerializeField]
+    private List<GameObject> disableList;
+    //public List<GameObject> DisableList => disableList;
+
     [Serializable]
     public class EmitterContainer
     {
@@ -69,6 +76,19 @@ public class InteractiveActionWrapper
         }
     }
 
+    public void EnableDisableObjects()
+    {
+        foreach(GameObject obj in enableList)
+        {
+            obj.SetActive(true);
+        }
+
+        foreach (GameObject obj in disableList)
+        {
+            obj.SetActive(false);
+        }
+    }
+
     public void TryOtherEmitters(MonoBehaviour sourceObjMono)
     {
         if (!sourceObjMono.enabled)
@@ -93,6 +113,7 @@ public class InteractiveActionWrapper
 
     public void TryCompleteAction(A_Interactive aint)
     {
+        EnableDisableObjects();
         TrySoundEvent(aint);
         TryOtherEmitters(aint);
         TryTextAnim(aint);

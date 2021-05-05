@@ -83,10 +83,14 @@ public class S_Global : Singleton<S_Global>
     {
         EnableInspectorLevelVariablesChanged();
     }
-
+    /*
+    public interface IVarContainer
+    {
+        S_TimeTravel.TIME_PERIOD WhatIsTimePeriod();
+    }*/
 
     [Serializable]
-    public class VarContainer<T>
+    public class VarContainer<T>// : IVarContainer
     {
         public VarContainer(T defaultVal)
         {
@@ -97,6 +101,8 @@ public class S_Global : Singleton<S_Global>
             EnableInspectorLevelVariablesChanged -= S_DeveloperTools_EnableInspectorLevelVariablesChanged;
             EnableInspectorLevelVariablesChanged += S_DeveloperTools_EnableInspectorLevelVariablesChanged;
         }
+
+        public event Action<T> VarChanged = delegate { };
 
         [SerializeField, GetSet("InspectorVar")]
         private T inspectorVar;
@@ -124,7 +130,12 @@ public class S_Global : Singleton<S_Global>
             get => currVar;
             set
             {
-                currVar = value;
+                if (!value.Equals(currVar))
+                {
+                    currVar = value;
+                    VarChanged(value);
+                }
+
                 inspectorVar = value;
             }
         }
