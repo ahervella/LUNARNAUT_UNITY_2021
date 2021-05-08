@@ -29,6 +29,18 @@ public class BlinkingLight : MonoBehaviour
     //[SerializeField]
     //private bool startOn = true;
 
+    [SerializeField, GetSet("ManualRefreshApplyingCustomColor")]
+    private bool manualRefreshApplyingCustomColor = false;
+    public bool ManualRefreshApplyingCustomColor
+    {
+        get => manualRefreshApplyingCustomColor;
+        set
+        {
+            manualRefreshApplyingCustomColor = false;
+            CustomColor = customColor;
+        }
+    }
+
     [SerializeField, GetSet("CustomColor")]
     private Color customColor;
     public Color CustomColor
@@ -42,43 +54,75 @@ public class BlinkingLight : MonoBehaviour
         }
     }
 
+    private float centerBlinkOn_InnerRadius = default;
+    private float centerBlinkOn_OuterRadius = default;
+    private float glowBlinkOn_InnerRadius = default;
+    private float glowBlinkOn_OuterRadius = default;
+
+    [SerializeField]
+    private float centerBlinkOffPercent = 0.5f;
+    [SerializeField]
+    private float glowBlinkOffPercent = 0.5f;
+
+
+    [SerializeField]
+    private bool useCustomBlinkOffColor = false;
+
     [SerializeField]
     private Color customBlinkOffColor;
 
     private void Awake()
     {
         //gameObject.SetActive(startOn);
+        centerBlinkOn_InnerRadius = TryGetRadius(lightCenter, innerRadius: true) ?? 1f;
+        centerBlinkOn_OuterRadius = TryGetRadius(lightCenter, innerRadius: false) ?? 1f;
+
+        glowBlinkOn_InnerRadius = TryGetRadius(lightGlow, innerRadius: true) ?? 1f;
+        glowBlinkOn_OuterRadius = TryGetRadius(lightGlow, innerRadius: false) ?? 1f;
 
         if (blinkOnTime > 0 && blinkOffTime > 0)
         {
+            if (!useCustomBlinkOffColor)
+            {
+                customBlinkOffColor = customColor;
+            }
             StartCoroutine(NextBlinkSwitch(blinkOn: true));
         }
     }
 
     private IEnumerator NextBlinkSwitch(bool blinkOn)
     {
-        TrySetLight(lightCenter, blinkOn ? customColor : customBlinkOffColor);
-        TrySetLight(lightGlow, blinkOn ? customColor : customBlinkOffColor);
-        //TryEnableLight(lightCenter, blinkOn);
-        //TryEnableLight(lightGlow, blinkOn);
+        if (blinkOn)
+        {
+            TrySetLight(lightCenter, customColor, centerBlinkOn_InnerRadius, centerBlinkOn_OuterRadius);
+            TrySetLight(lightGlow, customColor, glowBlinkOn_InnerRadius, glowBlinkOn_OuterRadius);
+        }
+        else
+        {
+            TrySetLight(lightCenter, customColor, centerBlinkOn_InnerRadius * centerBlinkOffPercent, centerBlinkOn_OuterRadius * centerBlinkOffPercent);
+            TrySetLight(lightGlow, customColor, glowBlinkOn_InnerRadius * glowBlinkOffPercent, glowBlinkOn_OuterRadius * glowBlinkOffPercent);
+        }
+
         yield return new WaitForSeconds(blinkOn ? blinkOnTime : blinkOffTime);
         StartCoroutine(NextBlinkSwitch(!blinkOn));
     }
 
-    private void TrySetLight(Light2D light, Color color)
+    private void TrySetLight(Light2D light, Color color, float innerRadius = -1, float outerRadius = -1)
     {
         if (light != null)
         {
             light.color = color;
+            light.pointLightInnerRadius = innerRadius >= 0 ? innerRadius : light.pointLightInnerRadius;
+            light.pointLightOuterRadius = outerRadius >= 0 ? outerRadius : light.pointLightOuterRadius;
         }
     }
 
-    /*
-    private void TryEnableLight(Light2D light, bool enable)
+    private float? TryGetRadius(Light2D light, bool innerRadius)
     {
         if (light != null)
         {
-            light.enabled = enable;
+            return innerRadius? light.pointLightInnerRadius : light.pointLightOuterRadius;
         }
-    }*/
+        return null;
+    }
 }
