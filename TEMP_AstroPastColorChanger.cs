@@ -2,13 +2,28 @@
 
 public class TEMP_AstroPastColorChanger : MonoBehaviour
 {
-    SpriteRenderer spriteComponent;
+    [SerializeField, GetSet("HueShift")]
+    private float hueShift;
+    public float HueShift
+    {
+        get => hueShift;
+        set
+        {
+            hueShift = value;
+            SetShaderHueShifter(value);
+        }
+    }
+
+    //SpriteRenderer spriteComponent;
+    [SerializeField]
+    private Material shaderMat;
 
     private void Awake()
     {
         S_TimeTravel.Current.TimelineChanged -= S_TimeTravel_TimelineChanged;
         S_TimeTravel.Current.TimelineChanged += S_TimeTravel_TimelineChanged;
-        spriteComponent = GetComponent<SpriteRenderer>();
+        //spriteComponent = GetComponent<SpriteRenderer>();
+        shaderMat = GetComponent<Material>();
         S_TimeTravel_TimelineChanged();
     }
 
@@ -16,11 +31,22 @@ public class TEMP_AstroPastColorChanger : MonoBehaviour
     {
         if (S_TimeTravel.Current.InFuture())
         {
-            spriteComponent.color = Color.white;
+            SetShaderHueShifter(0);
+            //spriteComponent.color = Color.white;
         }
         else
         {
-            spriteComponent.color = Color.green;
+            SetShaderHueShifter(hueShift);
+            //spriteComponent.color = tintColor;
         }
+    }
+
+    private void SetShaderHueShifter(float value)
+    {
+        if (shaderMat == null)
+        {
+            shaderMat = GetComponent<Material>();
+        }
+        shaderMat.SetFloat("_HueShifter", value);
     }
 }

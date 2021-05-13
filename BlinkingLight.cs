@@ -26,6 +26,7 @@ public class BlinkingLight : MonoBehaviour
     [SerializeField]
     private float blinkOffTime;
 
+
     //[SerializeField]
     //private bool startOn = true;
 
@@ -71,6 +72,8 @@ public class BlinkingLight : MonoBehaviour
     [SerializeField]
     private Color customBlinkOffColor;
 
+    private Coroutine blinkCR;
+
     private void Awake()
     {
         //gameObject.SetActive(startOn);
@@ -79,14 +82,25 @@ public class BlinkingLight : MonoBehaviour
 
         glowBlinkOn_InnerRadius = TryGetRadius(lightGlow, innerRadius: true) ?? 1f;
         glowBlinkOn_OuterRadius = TryGetRadius(lightGlow, innerRadius: false) ?? 1f;
+    }
 
+    private void OnEnable()
+    {
         if (blinkOnTime > 0 && blinkOffTime > 0)
         {
             if (!useCustomBlinkOffColor)
             {
                 customBlinkOffColor = customColor;
             }
-            StartCoroutine(NextBlinkSwitch(blinkOn: true));
+            blinkCR = StartCoroutine(NextBlinkSwitch(blinkOn: true));
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (blinkCR != null)
+        {
+            StopCoroutine(blinkCR);
         }
     }
 

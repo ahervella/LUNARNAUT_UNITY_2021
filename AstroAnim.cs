@@ -84,6 +84,7 @@ public class AstroAnim : MonoBehaviour
     public static event System.Action<PLAYER_STATE> OnAnimationStarted = delegate { };
     public static event System.Action<PLAYER_STATE> OnAnimationEnded = delegate { };
     public static event System.Action<float> OnOrientationUpdate = delegate { };
+    public static event System.Action<SUIT> SuitChanged = delegate { };
 
     [Header("Audio Properties")]
     [SerializeField]
@@ -187,7 +188,7 @@ public class AstroAnim : MonoBehaviour
         animDict.Clear();
         foreach (SUIT suit in (SUIT[])Enum.GetValues(typeof(SUIT)))
         {
-            string suitString = suit.ToString();
+            //string suitString = suit.ToString();
             Dictionary<PLAYER_STATE, AnimationClip> suitEntry = new Dictionary<PLAYER_STATE, AnimationClip>();
 
             foreach (PLAYER_STATE ps in (PLAYER_STATE[])Enum.GetValues(typeof(PLAYER_STATE)))
@@ -204,7 +205,7 @@ public class AstroAnim : MonoBehaviour
                 }
 
                 string psString = ps.ToString();//nameof(ps);
-                string path = ANIMS_PATH + suitString + "/ASTRO_" + suitString + "_" + psString + ".anim";
+                string path = ANIMS_PATH + "ACC/ACC_" + psString + ".anim";//suitString + "/ASTRO_" + suitString + "_" + psString + ".anim";
 
                 suitEntry.Add(ps, (AnimationClip)AssetDatabase.LoadAssetAtPath(path, typeof(AnimationClip)));
             }
@@ -287,6 +288,7 @@ public class AstroAnim : MonoBehaviour
             }
         }
         currSuit = blinkToggle ? blinkOn : blinkOff;
+        SuitChanged(currSuit);
     }
 
     private IEnumerator BlinkLoop()
@@ -304,7 +306,8 @@ public class AstroAnim : MonoBehaviour
         }
 
         blinkToggle = !blinkToggle;
-        SwitchAnimSuit();
+        SuitChanged(currSuit);
+        //SwitchAnimSuit();
 
         blinkCR = StartCoroutine(BlinkLoop());
     }
@@ -410,7 +413,7 @@ public class AstroAnim : MonoBehaviour
         {
             FacingRight = tempFacingRight;
             SuitUpdate();
-            SwitchAnimSuit();
+            //SwitchAnimSuit();
         }
 
         //if (grounded)
