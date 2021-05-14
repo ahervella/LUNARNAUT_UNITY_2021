@@ -60,11 +60,11 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
 
     private void SetWwiseTimeState()
     {
-        if (Timeline == TIME_PERIOD.FUTURE)
+        if (InFuture())
         {
             futureWwiseState.SetValue();
         }
-        else if (Timeline == TIME_PERIOD.PAST)
+        else if (InPast())
         {
             pastWwiseState.SetValue();
         }
@@ -82,6 +82,8 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
         AstroCamera.FadeInComplete += AstroCamera_FadeInComplete;
 
         S_DeveloperTools_TogglePlayerEnableTimeTravelChanged();
+
+        SetWwiseTimeState();
     }
 
     private void S_DeveloperTools_TogglePlayerEnableTimeTravelChanged()
