@@ -15,6 +15,11 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
     private bool ttInProgress = false;
     private bool ttWereControlsEnabled = true;
 
+    [SerializeField]
+    private AK.Wwise.State futureWwiseState;
+    [SerializeField]
+    private AK.Wwise.State pastWwiseState;
+
     private TIME_PERIOD timeline = TIME_PERIOD.FUTURE;
     public TIME_PERIOD Timeline
     {
@@ -32,6 +37,7 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
             TimelineChanged();
             ParseAstroTTD();
             UpdateCamera();
+            SetWwiseTimeState();
             ttInProgress = false;
         }
     }
@@ -52,9 +58,17 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
         }
     }
 
-
-
-
+    private void SetWwiseTimeState()
+    {
+        if (Timeline == TIME_PERIOD.FUTURE)
+        {
+            futureWwiseState.SetValue();
+        }
+        else if (Timeline == TIME_PERIOD.PAST)
+        {
+            pastWwiseState.SetValue();
+        }
+    }
 
     private void Awake()
     {
