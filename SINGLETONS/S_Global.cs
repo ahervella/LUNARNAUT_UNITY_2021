@@ -5,6 +5,38 @@ using UnityEngine;
 
 public class S_Global : Singleton<S_Global>
 {
+    private AstroPlayer astroPlayer;
+    public AstroPlayer GetAstroPlayer()
+    {
+        return TryGetComponentInScene(ref astroPlayer, "astro player");
+    }
+
+    private AstroAnim astroAnim;
+    public AstroAnim GetAstroAnim()
+    {
+        return TryGetComponentInScene(ref astroAnim, "the astro anim");
+    }
+
+    private Camera gameCamera;
+    public Camera GetCamera()
+    {
+        return TryGetComponentInScene(ref gameCamera, "the Camera");
+    }
+
+    private T TryGetComponentInScene<T>(ref T cachedCopy, string nameOfObject) where T : UnityEngine.Object
+    {
+        if (cachedCopy == null)
+        {
+            cachedCopy = FindObjectOfType<T>() ?? null;
+            if (cachedCopy == null)
+            {
+                Debug.LogErrorFormat("Tried to get {0} object but was no where in scene!", nameOfObject);
+            }
+        }
+
+        return cachedCopy;
+    }
+
     //TODO: make these level classes scriptable objects for singelton in scene? [SerializeField]
     //TODO: integrate a sort of default and testing section for these so we can easily test level for real
     [SerializeField]
@@ -66,6 +98,7 @@ public class S_Global : Singleton<S_Global>
 
     private void Awake()
     {
+        GetAstroPlayer();
         S_DeveloperTools.Current.EnableInspectorLevelVariablesChanged -= S_DeveloperTools_EnableInspectorLevelVariablesChanged;
         S_DeveloperTools.Current.EnableInspectorLevelVariablesChanged += S_DeveloperTools_EnableInspectorLevelVariablesChanged;
 

@@ -51,11 +51,6 @@ public class InteractiveActionWrapper
     private List<EmitterContainer> emitterContainers;
     public List<EmitterContainer> EmitterContainers => emitterContainers;
 
-    public void OnAwake()
-    {
-        AnimTextCont.OnAwake();
-    }
-
     public void TrySoundEvent(A_Interactive aint)
     {
         if (!aint.enabled)
@@ -108,7 +103,11 @@ public class InteractiveActionWrapper
 
     public void TryTextAnim(A_Interactive aint)
     {
-        AnimTextCont?.AT?.StartAnimBasedOnAnchor(aint);
+        if (AnimTextCont?.ATT != null)
+        {
+            Transform parent = AnimTextCont.CustomParent != null ? AnimTextCont.CustomParent : aint.transform;
+            S_AnimatedTextBuilder.Current.StartNewTextAnimation(AnimTextCont.ATT.Details, parent);
+        }
     }
 
     public void TryCompleteAction(A_Interactive aint)

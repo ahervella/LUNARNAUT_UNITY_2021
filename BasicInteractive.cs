@@ -50,10 +50,10 @@ public class BasicInteractive : A_Interactive
 
     protected virtual void Awake()
     {
-        astroEnterAction?.OnAwake();
-        astroExitAction?.OnAwake();
-        succesfulInteractAction?.OnAwake();
-        failedInteractAction?.OnAwake();
+        //astroEnterAction?.OnAwake(transform);
+        //astroExitAction?.OnAwake(transform);
+        //succesfulInteractAction?.OnAwake(transform);
+        //failedInteractAction?.OnAwake(transform);
     }
 
     //TODO: add an interact queue system in astro like the AstroText system?

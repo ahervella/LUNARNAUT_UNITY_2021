@@ -68,10 +68,10 @@ public class AstroAnim : MonoBehaviour
 
     private PLAYER_STATE currState = PLAYER_STATE.STAND;
     private bool _facingRight;
-    private bool FacingRight
+    public bool FacingRight
     {
         get => _facingRight;
-        set
+        private set
         {
             _facingRight = value;
             UpdateOrientation();

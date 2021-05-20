@@ -11,7 +11,7 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
     private Vector2 rightOrientationOffset;
     [SerializeField]
     private Vector2 leftOrientationOffset;
-    private Dictionary<A_Interactive, SO_AnimatedText> ATQueue = new Dictionary<A_Interactive, SO_AnimatedText>();
+    private Dictionary<A_Interactive, SO_AnimatedTextTemplate> ATQueue = new Dictionary<A_Interactive, SO_AnimatedTextTemplate>();
     //private List<SO_AnimatedText> ATQueue = new List<SO_AnimatedText>();
     private Coroutine removingCR;
 
@@ -48,7 +48,7 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
         }
     }
 
-    public void QueueInteractiveText(A_Interactive interactiveOwner, SO_AnimatedText at, Vector2 customRelativeOffset = new Vector2())
+    public void QueueInteractiveText(A_Interactive interactiveOwner, SO_AnimatedTextTemplate at, Vector2 customRelativeOffset = new Vector2())
     {
         if (!ATQueue.ContainsKey(interactiveOwner))
         {
@@ -56,35 +56,36 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
             return;
         }
 
+        
         //handy if we want to immediately remove the text for whatever reason
         if (at == null)
         {
-            ATQueue[interactiveOwner].StopAndClearAnim(deanimate: false);
+            //ATQueue[interactiveOwner].StopAndClearAnim(deanimate: false);
             ATQueue[interactiveOwner] = null;
             return;
         }
-
+        /*
         switch (at.CurrAnchor)
         {
-            case SO_AnimatedText.AT_ANCHOR.ASTRO_RIGHT:
+            case SO_AnimatedTextTemplate.AT_ANCHOR.ASTRO_RIGHT:
                 at.AdjustLocalPos(rightOrientationOffset);
                 break;
 
-            case SO_AnimatedText.AT_ANCHOR.ASTRO_LEFT:
+            case SO_AnimatedTextTemplate.AT_ANCHOR.ASTRO_LEFT:
                 at.AdjustLocalPos(leftOrientationOffset);
                 break;
 
-            case SO_AnimatedText.AT_ANCHOR.ASTRO_FRONT:
+            case SO_AnimatedTextTemplate.AT_ANCHOR.ASTRO_FRONT:
                 //TODO: determine if facing right or left
                 at.AdjustLocalPos(rightOrientationOffset);
                 break;
 
-            case SO_AnimatedText.AT_ANCHOR.ASTRO_BEHIND:
+            case SO_AnimatedTextTemplate.AT_ANCHOR.ASTRO_BEHIND:
                 //TODO: determine if facing right or left
                 at.AdjustLocalPos(rightOrientationOffset);
                 break;
 
-            case SO_AnimatedText.AT_ANCHOR.ASTRO_CUSTOM:
+            case SO_AnimatedTextTemplate.AT_ANCHOR.ASTRO_CUSTOM:
                 at.AdjustLocalPos(customRelativeOffset);
                 break;
 
@@ -99,7 +100,8 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
             ATQueue[interactiveOwner].StopAndClearAnim(deanimate: false);
             at.StartAnim();
         }
-
+        
+        */
 
         ATQueue[interactiveOwner] = at;
     }
@@ -125,16 +127,17 @@ public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
 
     private IEnumerator StartRemovalCoroutine(A_Interactive interactiveOwner)
     {
-        float deanimateTime = ATQueue[interactiveOwner].StopAndClearAnim(deanimate: true);
+        //float deanimateTime = ATQueue[interactiveOwner].StopAndClearAnim(deanimate: true);
         ATQueue.Remove(interactiveOwner);
-        yield return new WaitForSeconds(deanimateTime);
+        //yield return new WaitForSeconds(deanimateTime);
 
         //play the next one in queue if any
         if (ATQueue.Count > 0)
         {
             ATQueue.First().Key.OnAstroFocus();
-            ATQueue.First().Value.StartAnim();
+            //ATQueue.First().Value.StartAnim();
         }
         removingCR = null;
+        yield break;
     }
 }
