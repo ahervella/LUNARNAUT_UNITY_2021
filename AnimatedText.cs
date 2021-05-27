@@ -172,6 +172,7 @@ public class AnimatedText : MonoBehaviour
 
     private void StartTextAnimation()
     {
+        //TODO: TEXT SOUNDS START HERE
         StopTextCR(ref deanimatingCR);
         StopTextCR(ref animatingCR);
         float delayPerCharacter = currAnimTime / ((float) currText.Length);
@@ -197,6 +198,7 @@ public class AnimatedText : MonoBehaviour
             {
                 yield break;
             }
+            //TODO: SOUND FOR UNTYPING A LETTER HERE
             characterIndex--;
         }
         else
@@ -207,6 +209,7 @@ public class AnimatedText : MonoBehaviour
                 yield break;
               
             }
+            //TODO: SOUND FOR TYPING A LETTER HERE
             characterIndex++;
         }
 
@@ -217,6 +220,7 @@ public class AnimatedText : MonoBehaviour
 
     private IEnumerator HoldTextAnimationCR()
     {
+        //TODO: SOUND FOR DONE TYPING
         underscoreCR = StartCoroutine(NextUnderscoreBlinkCR());
 
         if (indefDisplayTime)
@@ -241,6 +245,7 @@ public class AnimatedText : MonoBehaviour
     {
         if (underscoreOn)
         {
+            //TODO: SOUND BLINK OFF HERE
             //this assumes we only are doing the blinking when the full text was displayed
             textMesh.text = currText;
             underscoreOn = false;
@@ -258,6 +263,7 @@ public class AnimatedText : MonoBehaviour
 
     public void DeanimateText()
     {
+        //TODO: SOUND FOR START UNTYPING
         if (deanimatingCR != null)
         {
             Debug.Log("Tried deanimating an AnimatedText that was already denanimating.");
