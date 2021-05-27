@@ -48,6 +48,8 @@ public class BasicInteractive : A_Interactive
 
     protected bool EnteredWasTriggered { get; private set; } = false;
 
+    protected AnimatedText animatedText = null;
+
     protected virtual void Awake()
     {
         //astroEnterAction?.OnAwake(transform);
@@ -65,7 +67,7 @@ public class BasicInteractive : A_Interactive
         if (!Interacted)
         {
             EnteredWasTriggered = true;
-            astroEnterAction.TryCompleteAction(this);
+            animatedText = astroEnterAction.TryCompleteAction(this, animatedText);
             ExecuteAllReactions(astroEnterReactions);
         }
         //TODO: else play only text
@@ -87,12 +89,21 @@ public class BasicInteractive : A_Interactive
             return;
         }
 
-        astroExitAction.TryCompleteAction(this);
+        animatedText = astroExitAction.TryCompleteAction(this, animatedText);
+        DeanimateAllAT();
 
         ExecuteAllReactions(astroExitReactions);
         if (resetInteractOnExit)
         {
             Interacted = false;
+        }
+    }
+
+    private void DeanimateAllAT()
+    {
+        if (animatedText != null)
+        {
+            animatedText.DeanimateText();
         }
     }
 
@@ -108,13 +119,13 @@ public class BasicInteractive : A_Interactive
         if (AllInteractArgumentsTrue())
         {
             Interacted = true;
-            succesfulInteractAction.TryCompleteAction(this);
+            animatedText = succesfulInteractAction.TryCompleteAction(this, animatedText);
             ExecuteAllReactions(interactReactions);
             OnSuccessfulInteract();
         }
         else
         {
-            failedInteractAction.TryCompleteAction(this);
+            animatedText = failedInteractAction.TryCompleteAction(this, animatedText);
             OnAllInteractArgumentsFalse();
         }
     }

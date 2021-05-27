@@ -101,21 +101,34 @@ public class InteractiveActionWrapper
         }
     }
 
-    public void TryTextAnim(A_Interactive aint)
+    public AnimatedText TryTextAnim(A_Interactive aint, AnimatedText at)
     {
-        if (AnimTextCont?.ATT != null)
+        AnimatedText.ATDetails details;
+        if (AnimTextCont?.UseTemplate != null)
         {
-            Transform parent = AnimTextCont.CustomParent != null ? AnimTextCont.CustomParent : aint.transform;
-            S_AnimatedTextBuilder.Current.StartNewTextAnimation(AnimTextCont.ATT.Details, parent);
+            details = AnimTextCont.UseTemplate.Details;
         }
+        //only use ones we got 
+        else if(AnimTextCont.Details.Text != string.Empty)
+        {
+            details = AnimTextCont.Details;
+        }
+        else
+        {
+            //just return what ever we tried to feed it if we got no text details to animate.
+            return at;
+        }
+
+        Transform parent = AnimTextCont.CustomParent != null ? AnimTextCont.CustomParent : aint.transform;
+        return S_AnimatedTextBuilder.Current.StartNewTextAnimation(details, parent, at);
     }
 
-    public void TryCompleteAction(A_Interactive aint)
+    public AnimatedText TryCompleteAction(A_Interactive aint, AnimatedText at)
     {
         EnableDisableObjects();
         TrySoundEvent(aint);
         TryOtherEmitters(aint);
-        TryTextAnim(aint);
+        return TryTextAnim(aint, at);
     }
 
     protected IEnumerator DelaySoundEvent(GameObject soundObject)

@@ -21,7 +21,6 @@ public class AnimatedText : MonoBehaviour
         //https://docs.microsoft.com/en-us/visualstudio/gamedev/unity/unity-scripting-upgrade
         //https://stackoverflow.com/questions/56019411/how-to-install-infer-net-to-unity-2018-3
 
-        public const float ANIMATE_TIME = 2f;
         public const float DEANIMATE_TIME = 0.5f;
         public const float DEFAULT_DISPLAY_TIME = 3.0f;
 
@@ -40,10 +39,10 @@ public class AnimatedText : MonoBehaviour
         public enum AT_SIZE { SMALL, MED, LARGE, HUGE }
         public static readonly Dictionary<AT_SIZE, float> sizeDict = new Dictionary<AT_SIZE, float>
         {
-            { AT_SIZE.SMALL, 10f },
-            { AT_SIZE.MED, 10f },
-            { AT_SIZE.LARGE, 10f },
-            { AT_SIZE.HUGE, 10f }
+            { AT_SIZE.SMALL, 20f },
+            { AT_SIZE.MED, 40f },
+            { AT_SIZE.LARGE, 55f },
+            { AT_SIZE.HUGE, 75f }
         };
         //.ToImmutableDictionary();
 
@@ -51,14 +50,14 @@ public class AnimatedText : MonoBehaviour
         public static readonly Dictionary<AT_ANIM_TIME, float> animTimeDict = new Dictionary<AT_ANIM_TIME, float>
         {
             { AT_ANIM_TIME.SLOW, 0.5f },
-            { AT_ANIM_TIME.NORM, 2f },
+            { AT_ANIM_TIME.NORM, 1f },
             { AT_ANIM_TIME.FAST, 4f }
         };
         //.ToImmutableDictionary();
 
         public enum AT_ANCHOR { LOCAL_POS, ASTRO_LEFT, ASTRO_RIGHT, ASTRO_FRONT, ASTRO_BEHIND, TOP_RIGHT, TOP_LEFT, TOP_CENTER, CENTER, BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT }
         public enum AT_ANIM_DIR { RIGHT, LEFT, MIDDLE }
-        public enum AT_ALIGNMENT { LEFT, CENTER, RIGHT }
+        //public enum AT_ALIGNMENT { LEFT, CENTER, RIGHT }
         public enum AT_DURATION { INDEFINITE, DEFAULT, CUSTOM }
 
         [SerializeField]
@@ -76,7 +75,7 @@ public class AnimatedText : MonoBehaviour
         [SerializeField]
         private AT_ANIM_TIME animSpeed = AT_ANIM_TIME.NORM;
         public AT_ANIM_TIME AnimSpeed => animSpeed;
-
+        
         [SerializeField]
         private AT_ANCHOR anchor = AT_ANCHOR.LOCAL_POS;
         public AT_ANCHOR Anchor => anchor;
@@ -84,10 +83,6 @@ public class AnimatedText : MonoBehaviour
         [SerializeField]
         private AT_ANIM_DIR animDirection = AT_ANIM_DIR.RIGHT;
         public AT_ANIM_DIR AnimDirection => animDirection;
-
-        [SerializeField]
-        private AT_ALIGNMENT alignment = AT_ALIGNMENT.LEFT;
-        public AT_ALIGNMENT Alignment => alignment;
 
         [SerializeField]
         private AT_DURATION displayTime = AT_DURATION.DEFAULT;
@@ -99,9 +94,10 @@ public class AnimatedText : MonoBehaviour
 
         [SerializeField]
         private bool goToLastTextOnFinish = false;
-        public bool GoToLastTextOnFinish = false;
+        public bool GoToLastTextOnFinish => goToLastTextOnFinish;
     }
 
+    private const float UNDERSCORE_BLINK_TIME = 1f;
     private string currText;
     private float currAnimTime;
     private Transform currAnchor;
@@ -127,20 +123,6 @@ public class AnimatedText : MonoBehaviour
         textMesh.color = ATDetails.colorDict[atd.TextColor];
         textMesh.fontSize = ATDetails.sizeDict[atd.TextSize];
         currAnimTime = ATDetails.animTimeDict[atd.AnimSpeed];
-        //SetATDAnchor(atd.Anchor);
-
-        switch (atd.Alignment)
-        {
-            case ATDetails.AT_ALIGNMENT.CENTER:
-                textMesh.alignment = TextAlignmentOptions.Center;
-                break;
-            case ATDetails.AT_ALIGNMENT.LEFT:
-                textMesh.alignment = TextAlignmentOptions.Left;
-                break;
-            case ATDetails.AT_ALIGNMENT.RIGHT:
-                textMesh.alignment = TextAlignmentOptions.Right;
-                break;
-        }
 
         indefDisplayTime = false;
 
@@ -157,32 +139,58 @@ public class AnimatedText : MonoBehaviour
                 break;
         }
 
+        float halfWidthOfTextBox = textMesh.rectTransform.sizeDelta.x / 2f;
+        textMesh.transform.localPosition = Vector3.zero;
+
+        switch (atd.AnimDirection)
+        {
+            case ATDetails.AT_ANIM_DIR.LEFT:
+                textMesh.transform.position += new Vector3(-halfWidthOfTextBox, 0, 0);
+                //grows from right to left, so start on right side
+                textMesh.alignment = TextAlignmentOptions.TopRight;
+                break;
+
+            case ATDetails.AT_ANIM_DIR.RIGHT:
+                textMesh.transform.position += new Vector3(halfWidthOfTextBox, 0, 0);
+                textMesh.alignment = TextAlignmentOptions.TopLeft;
+                break;
+
+            case ATDetails.AT_ANIM_DIR.MIDDLE:
+                textMesh.alignment = TextAlignmentOptions.TopFlush;
+                break;
+        }
+
         goToLastTextOnFinish = atd.GoToLastTextOnFinish;
     }
 
 
     private Coroutine animatingCR;
     private Coroutine deanimatingCR;
+    private Coroutine underscoreCR;
+
+    private bool underscoreOn = false;
 
     private void StartTextAnimation()
     {
-        StopTextCR(deanimatingCR);
-        StopTextCR(animatingCR);
+        StopTextCR(ref deanimatingCR);
+        StopTextCR(ref animatingCR);
         float delayPerCharacter = currAnimTime / ((float) currText.Length);
         animatingCR = StartCoroutine(StartTextAnimationCR(delayPerCharacter, 0));
     }
 
-    private void StopTextCR(Coroutine animationCR)
+    private void StopTextCR(ref Coroutine animationCR)
     {
         if (animationCR != null)
         {
             StopCoroutine(animationCR);
+            animationCR = null;
         }
     }
-    //private int characterIndex = 0f;
 
     private IEnumerator StartTextAnimationCR(float delayPerCharacter, int characterIndex, bool deanimate = false)
     {
+        StopUnderscoreCR();
+
         if (deanimate)
         {
             if (characterIndex == 0)
@@ -196,17 +204,21 @@ public class AnimatedText : MonoBehaviour
             if (characterIndex == currText.Length)
             {
                 yield return HoldTextAnimationCR();
+                yield break;
+              
             }
             characterIndex++;
         }
 
         yield return new WaitForSeconds(delayPerCharacter);
         textMesh.text = currText.Substring(0, characterIndex);
-        yield return StartTextAnimationCR(delayPerCharacter, characterIndex);
+        yield return StartTextAnimationCR(delayPerCharacter, characterIndex, deanimate);
     }
 
     private IEnumerator HoldTextAnimationCR()
     {
+        underscoreCR = StartCoroutine(NextUnderscoreBlinkCR());
+
         if (indefDisplayTime)
         {
             yield break;
@@ -224,6 +236,26 @@ public class AnimatedText : MonoBehaviour
         }
     }
 
+
+    private void StopUnderscoreCR()
+    {
+        if (underscoreOn)
+        {
+            //this assumes we only are doing the blinking when the full text was displayed
+            textMesh.text = currText;
+            underscoreOn = false;
+        }
+        StopTextCR(ref underscoreCR);
+    }
+
+    private IEnumerator NextUnderscoreBlinkCR()
+    {
+        underscoreOn = !underscoreOn;
+        textMesh.text = underscoreOn ? currText + "_" : currText;
+        yield return new WaitForSeconds(UNDERSCORE_BLINK_TIME);
+        yield return NextUnderscoreBlinkCR();
+    }
+
     public void DeanimateText()
     {
         if (deanimatingCR != null)
@@ -232,136 +264,13 @@ public class AnimatedText : MonoBehaviour
             return;
         }
 
-        StopTextCR(animatingCR);
+        StopTextCR(ref animatingCR);
         float delayPerCharacter = ATDetails.DEANIMATE_TIME / ((float)textMesh.text.Length);
-        deanimatingCR = StartCoroutine(StartTextAnimationCR(delayPerCharacter, textMesh.text.Length, true));
+        deanimatingCR = StartCoroutine(StartTextAnimationCR(delayPerCharacter, textMesh.text.Length, deanimate: true));
     }
 
-
-
-
-    ////TODO: once we know the component we want to use for text
-    ////make sure we check for only one of those components were gameobject,
-    ////or should we have multiple of those components and each AT has its own
-    ////component?
-
-    ////TODO:
-    ////private [component we plan to use] textComponent...
-
-    //private GameObject textGO;
-
-    //public void Awake()
-    //{
-    //    SetInitialFields();
-    //}
-
-    //public void SetInitialFields()
-    //{
-    //    CurrText = initialText;
-    //    CurrColor = initialColor;
-    //    CurrSize = initialSize;
-    //    CurrSpeed = initialSpeed;
-    //    CurrAnchor = initialAnchor;
-    //    CurrAnimDirection = initialAnimDirection;
-    //    CurrAlignment = initialAlignment;
-    //    CurrDisplayTime = initialDisplayTime;
-    //    CurrCustomDisplayTime = initialCustomDisplayTime;
-    //}
-
-    //public bool IsAnchorAstro()
-    //{
-    //    return CurrAnchor == AT_ANCHOR.ASTRO_LEFT
-    //        || CurrAnchor == AT_ANCHOR.ASTRO_RIGHT
-    //        || CurrAnchor == AT_ANCHOR.ASTRO_FRONT
-    //        || CurrAnchor == AT_ANCHOR.ASTRO_BEHIND
-    //        || CurrAnchor == AT_ANCHOR.ASTRO_CUSTOM;
-    //}
-
-    //public bool IsAnchorCamera()
-    //{
-    //    return CurrAnchor == AT_ANCHOR.TOP_RIGHT
-    //        || CurrAnchor == AT_ANCHOR.TOP_LEFT
-    //        || CurrAnchor == AT_ANCHOR.TOP_CENTER
-    //        || CurrAnchor == AT_ANCHOR.CENTER
-    //        || CurrAnchor == AT_ANCHOR.BOTTOM_CENTER
-    //        || CurrAnchor == AT_ANCHOR.BOTTOM_LEFT
-    //        || CurrAnchor == AT_ANCHOR.BOTTOM_RIGHT;
-    //}
-
-    //public void StartAnimBasedOnAnchor(A_Interactive interactiveOwner = null)
-    //{
-    //    if (IsAnchorAstro())
-    //    {
-    //        if (interactiveOwner == null)
-    //        {
-    //            Debug.LogError(string.Format("An interactive owner is needed for queuing this animated text '{0}' to the interactive system", CurrText));
-    //            return;
-    //        }
-    //        S_AstroInteractiveQueue.Current.QueueInteractiveText(interactiveOwner, this, textGO.transform.localPosition);
-    //    }
-
-    //    else if (IsAnchorCamera())
-    //    {
-    //        StartAnim(/*TODO: set parent to camera*/);
-    //    }
-    //    else //LOCAL_POS 
-    //    {
-    //        StartAnim();
-    //    }
-    //}
-
-    ////TODO: lock changing text if animating?
-    //public void StartAnim(Transform newParent = null)
-    //{
-    //    if (newParent != null)
-    //    {
-    //        CurrParent = newParent;
-    //    }
-
-    //    //TODO: check to make sure parent is camera or astro based on anchor
-
-    //    if (textGO == null)
-    //    {
-    //        Debug.LogError(string.Format("No gameobject exists for the text '{0}' because it was never assigned a parent gameobject :(", initialText));
-    //        return;
-    //    }
-
-    //    //TODO: start anim
-    //    Debug.Log(string.Format("started typing text '{0}'", CurrText));
-    //    S_AstroInteractiveQueue.Current.StartCoroutine(SudoWaitForTime(ANIMATE_TIME, string.Format("ended typing text '{0}'", CurrText)));
-    //}
-
-    //private IEnumerator SudoWaitForTime(float animTime, string consoleText)
-    //{
-    //    yield return new WaitForSeconds(animTime);
-    //    Debug.Log(consoleText);
-    //}
-
-    //public float StopAndClearAnim(bool deanimate)
-    //{
-    //    //TODO: implement
-    //    if (!deanimate)
-    //    {
-    //        Debug.Log(string.Format("cleared text '{0}'", CurrText));
-    //        return 0f;
-    //    }
-    //    Debug.Log(string.Format("started deanimating text '{0}'", CurrText));
-    //    S_AstroInteractiveQueue.Current.StartCoroutine(SudoWaitForTime(DEANIMATE_TIME, string.Format("ended deanimating text {0}", CurrText)));
-    //    return 0f;
-    //}
-
-    //public void ChangeATAndRestart(string newText, AT_COLOR newColor, AT_SIZE newSize, AT_DURATION newDuration)
-    //{
-    //    //TODO: implement
-    //}
-
-    //public void ChangeAnchor(AT_ANCHOR newAnchor, Vector2 customLocalPos = new Vector2())
-    //{
-    //    //TODO: implement
-    //}
-
-    //public void AdjustLocalPos(Vector2 newPos)
-    //{
-    //    //TODO: implement
-    //}
+    public void SetCustomTextWidth(float width)
+    {
+        textMesh.rectTransform.sizeDelta = new Vector2(width, textMesh.rectTransform.sizeDelta.y);
+    }
 }

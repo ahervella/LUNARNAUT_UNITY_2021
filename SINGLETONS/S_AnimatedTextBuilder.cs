@@ -19,14 +19,14 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
     }
 
 
-    public void StartNewTextAnimation(ATDetails atd, Transform customParent, AnimatedText specificATDToReuse = null)
+    public AnimatedText StartNewTextAnimation(ATDetails atd, Transform customParent, AnimatedText specificATDToReuse )
     {
         switch (atd.Anchor)
         {
             case ATDetails.AT_ANCHOR.LOCAL_POS:
                 if (specificATDToReuse == null)
                 {
-                    specificATDToReuse = GetOrInstanceAnimatedText(customParent);
+                    specificATDToReuse = InstanceAnimatedText(customParent);
                 }
                 specificATDToReuse.transform.localPosition = Vector3.zero;
                 break;
@@ -36,7 +36,7 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
             case ATDetails.AT_ANCHOR.ASTRO_BEHIND:
                 if (specificATDToReuse == null)
                 {
-                    specificATDToReuse = GetOrInstanceAnimatedText(S_Global.Current.GetAstroPlayer().transform);
+                    specificATDToReuse = InstanceAnimatedText(customParent);
                 }
                 SetAstroAnchor(ref specificATDToReuse, atd.Anchor);
                 break;
@@ -51,20 +51,9 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
         }
 
         specificATDToReuse.AnimateAndSetText(atd);
+        return specificATDToReuse;
     }
 
-    private AnimatedText GetOrInstanceAnimatedText(Transform parent)
-    {
-        for(int i = 0; i < parent.childCount; i++)
-        {
-            AnimatedText at = parent.GetChild(i).GetComponent<AnimatedText>();
-            if (at != null)
-            {
-                return at;
-            }
-        }
-        return InstanceAnimatedText(parent);
-    }
 
     private void SetAstroAnchor(ref AnimatedText at, ATDetails.AT_ANCHOR anchor)
     {
