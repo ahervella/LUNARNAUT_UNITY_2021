@@ -144,6 +144,9 @@ public class AstroPlayer : MonoBehaviour
             //shortcut to setting astro at start position
             S_TimeTravel_ParseAstroTTD();
         }
+
+        SetProperTextPosScale();
+        AstroAnim.OnOrientationUpdate += AstroAnim_OnOrientationUpdate;
     }
 
     /// <summary>
@@ -319,6 +322,45 @@ public class AstroPlayer : MonoBehaviour
     private Transform pastStartPos;
     [SerializeField]
     private Transform futureStartPos;
+
+    [SerializeField]
+    private Transform textPosRight;
+    [SerializeField]
+    private Transform textPosLeft;
+
+    public Transform GetTextTransformSide(bool right)
+    {
+        return right ? textPosRight : textPosLeft;
+    }
+
+    public Transform GetTextTransformDirection(bool front)
+    {
+        if (front)
+        {
+            return animController.FacingRight ? textPosRight : textPosLeft;
+        }
+
+        return animController.FacingRight ? textPosLeft : textPosRight;
+    }
+
+    private void SetProperTextPosScale()
+    {
+        //restore the OG scale of the text
+        Vector3 newScale = new Vector3(1 / transform.localScale.x, 1 / transform.localScale.y, 1 / transform.localScale.z);
+        textPosLeft.localScale = newScale;
+        textPosRight.localScale = newScale;
+    }
+
+    private void AstroAnim_OnOrientationUpdate(float multiplyer)
+    {
+        //to keep same direction always
+        textPosLeft.localScale = new Vector3(Math.Abs(textPosLeft.localScale.x) * multiplyer, textPosLeft.localScale.y, textPosLeft.localScale.z);
+        textPosLeft.localPosition = new Vector3(Math.Abs(textPosLeft.localPosition.x) * -multiplyer, textPosLeft.localPosition.y, textPosLeft.localPosition.z);
+
+        textPosRight.localScale = new Vector3(Math.Abs(textPosRight.localScale.x) * multiplyer, textPosRight.localScale.y, textPosRight.localScale.z);
+        textPosRight.localPosition = new Vector3(Math.Abs(textPosRight.localPosition.x) * multiplyer, textPosRight.localPosition.y, textPosRight.localPosition.z);
+
+    }
 
     private CapsuleCollider2D astroCollider;
 

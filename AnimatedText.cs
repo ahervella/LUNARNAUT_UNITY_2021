@@ -24,8 +24,6 @@ public class AnimatedText : MonoBehaviour
         public const float DEANIMATE_TIME = 0.5f;
         public const float DEFAULT_DISPLAY_TIME = 3.0f;
 
-        public static readonly Vector3 ASTRO_TEXT_POS_OFFSET = new Vector3(5, 10, 0);
-
         public enum AT_COLOR { INFO, SUCCESS, WARNING, FAILURE }
         public static readonly Dictionary<AT_COLOR, Color> colorDict = new Dictionary<AT_COLOR, Color>
         {
@@ -55,7 +53,7 @@ public class AnimatedText : MonoBehaviour
         };
         //.ToImmutableDictionary();
 
-        public enum AT_ANCHOR { LOCAL_POS, ASTRO_LEFT, ASTRO_RIGHT, ASTRO_FRONT, ASTRO_BEHIND, TOP_RIGHT, TOP_LEFT, TOP_CENTER, CENTER, BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT }
+        public enum AT_ANCHOR { LOCAL_POS_RIGHT, LOCAL_POS_LEFT, LOCAL_POS_MIDDLE, ASTRO_LEFT, ASTRO_RIGHT, ASTRO_FRONT, ASTRO_BEHIND, TOP_RIGHT, TOP_LEFT, TOP_CENTER, CENTER, BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT }
         public enum AT_ANIM_DIR { RIGHT, LEFT, MIDDLE }
         //public enum AT_ALIGNMENT { LEFT, CENTER, RIGHT }
         public enum AT_DURATION { INDEFINITE, DEFAULT, CUSTOM }
@@ -77,7 +75,7 @@ public class AnimatedText : MonoBehaviour
         public AT_ANIM_TIME AnimSpeed => animSpeed;
         
         [SerializeField]
-        private AT_ANCHOR anchor = AT_ANCHOR.LOCAL_POS;
+        private AT_ANCHOR anchor = AT_ANCHOR.LOCAL_POS_RIGHT;
         public AT_ANCHOR Anchor => anchor;
 
         [SerializeField]
@@ -98,6 +96,7 @@ public class AnimatedText : MonoBehaviour
     }
 
     private const float UNDERSCORE_BLINK_TIME = 1f;
+    private const float TEXT_WIDTH_MULTIPLYER = (300f - 85.8f) / 18f;//18 / 213f;
     private string currText;
     private float currAnimTime;
     private Transform currAnchor;
@@ -110,7 +109,9 @@ public class AnimatedText : MonoBehaviour
 
     public void AnimateAndSetText(ATDetails atd)
     {
+        textMesh.text = "";
         SetFromATDetails(atd);
+        SetAnchorOffset();
         StartTextAnimation();
     }
 
@@ -163,12 +164,34 @@ public class AnimatedText : MonoBehaviour
         goToLastTextOnFinish = atd.GoToLastTextOnFinish;
     }
 
+    public float AnchorOffSetMultiplyer = 0f;
+
+    private void SetAnchorOffset()
+    {
+        Vector3 pos = textMesh.transform.localPosition;
+        textMesh.transform.localPosition += new Vector3(GetCurrTextWidth() * AnchorOffSetMultiplyer, 0, 0);
+    }
+
 
     private Coroutine animatingCR;
     private Coroutine deanimatingCR;
     private Coroutine underscoreCR;
 
     private bool underscoreOn = false;
+
+    private float GetCurrTextWidth()
+    {
+        /*
+        string tempText = textMesh.text;
+        textMesh.text = currText;
+        float tempWidth = textMesh.renderedWidth;
+        Debug.LogFormat("what is this shit: {0}", tempWidth);
+        textMesh.text = tempText;
+        return tempWidth;*/
+
+        //TODO: find more accurate way to do this
+        return currText.Length * TEXT_WIDTH_MULTIPLYER;
+    }
 
     private void StartTextAnimation()
     {

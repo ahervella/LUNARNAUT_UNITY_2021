@@ -29,6 +29,10 @@ public class BasicInteractive : A_Interactive
     private bool oneTimeInteract = true;
     [SerializeField]
     private bool resetInteractOnExit = false;
+    [SerializeField]
+    private bool onEnterNeedsRequirements = false;
+    [SerializeField]
+    private bool deanimateTextOnSuccess = false;
 
     private bool interacted = false;
     protected bool Interacted
@@ -64,6 +68,11 @@ public class BasicInteractive : A_Interactive
     //TODO: implement adding to astro text system
     protected override void OnAstroEnter(GameObject astroGO)
     {
+        if (onEnterNeedsRequirements && !AllInteractArgumentsTrue())
+        {
+            return;
+        }
+
         if (!Interacted)
         {
             EnteredWasTriggered = true;
@@ -130,7 +139,13 @@ public class BasicInteractive : A_Interactive
         }
     }
 
-    protected virtual void OnSuccessfulInteract() { }
+    protected virtual void OnSuccessfulInteract()
+    {
+        if (deanimateTextOnSuccess && animatedText != null)
+        {
+            animatedText.DeanimateText();
+        }
+    }
 
     protected virtual void OnAllInteractArgumentsFalse() { }
 
