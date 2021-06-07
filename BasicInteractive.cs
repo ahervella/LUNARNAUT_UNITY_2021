@@ -28,18 +28,24 @@ public class BasicInteractive : A_Interactive
     [SerializeField]
     private bool oneTimeInteract = true;
     [SerializeField]
+    private bool useCustomInteractTime = false;
+    [SerializeField]
+    private float customInteractTime = 3f;
+    [SerializeField]
     private bool resetInteractOnExit = false;
     [SerializeField]
     private bool onEnterNeedsRequirements = false;
     [SerializeField]
     private bool deanimateTextOnSuccess = false;
 
+    private Coroutine customInteractTimeCR = null;
+
     private bool interacted = false;
     protected bool Interacted
     {
         get
         {
-            if (!oneTimeInteract)
+            if (!oneTimeInteract && !useCustomInteractTime)
             {
                 return false;
             }
@@ -101,6 +107,11 @@ public class BasicInteractive : A_Interactive
         animatedText = astroExitAction.TryCompleteAction(this, animatedText);
         DeanimateAllAT();
 
+        if (customInteractTimeCR != null)
+        {
+            StopCoroutine(customInteractTimeCR);
+        }
+
         ExecuteAllReactions(astroExitReactions);
         if (resetInteractOnExit)
         {
@@ -145,6 +156,21 @@ public class BasicInteractive : A_Interactive
         {
             animatedText.DeanimateText();
         }
+
+        if (useCustomInteractTime)
+        {
+            if (customInteractTimeCR != null)
+            {
+                StopCoroutine(customInteractTimeCR);
+            }
+            customInteractTimeCR = StartCoroutine(CustomInteractTimeCR());
+        }
+    }
+
+    private IEnumerator CustomInteractTimeCR()
+    {
+        yield return new WaitForSeconds(customInteractTime);
+        Interacted = false;
     }
 
     protected virtual void OnAllInteractArgumentsFalse() { }

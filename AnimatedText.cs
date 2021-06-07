@@ -109,6 +109,7 @@ public class AnimatedText : MonoBehaviour
 
     public void AnimateAndSetText(ATDetails atd)
     {
+        StopUnderscoreCR();
         textMesh.text = "";
         SetFromATDetails(atd);
         SetAnchorOffset();
@@ -190,6 +191,7 @@ public class AnimatedText : MonoBehaviour
         return tempWidth;*/
 
         //TODO: find more accurate way to do this
+        //TODO: ALSO need to accomodate for different text sizes
         return currText.Length * TEXT_WIDTH_MULTIPLYER;
     }
 

@@ -109,6 +109,10 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
             }
             //middle typing text is taken care of when text animated in AnimatedText.cs
         }
+        else
+        {
+            at.AnchorOffSetMultiplyer = 0f;
+        }
     }
 
     private void SetAstroAnchor(ref AnimatedText at, ATDetails details)
@@ -141,10 +145,11 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
         else // set the parent to the right one if not already
         {
             at.transform.parent = posTrans;
+            at.transform.localPosition = Vector3.zero;
         }
 
         //cheap trick to see which of the two sides we got
-        AssignOffset(ref at, details, side: (int) (posTrans.localPosition.x));
+        AssignOffset(ref at, details, side: (int) (posTrans.localPosition.x * posTrans.localScale.x));
     }
 
 
