@@ -121,7 +121,8 @@ public class AnimatedText : MonoBehaviour
         previousATD = currATD;
         currATD = atd;
 
-        currText = atd.Text;
+        //for doing proper new lines with wrapping words
+        currText = atd.Text.Replace("_", "_ ");
         textMesh.color = ATDetails.colorDict[atd.TextColor];
         textMesh.fontSize = ATDetails.sizeDict[atd.TextSize];
         currAnimTime = ATDetails.animTimeDict[atd.AnimSpeed];
@@ -192,7 +193,37 @@ public class AnimatedText : MonoBehaviour
 
         //TODO: find more accurate way to do this
         //TODO: ALSO need to accomodate for different text sizes
-        return currText.Length * TEXT_WIDTH_MULTIPLYER;
+
+        //This takes into account wrapping and how it affects the actual max width displayed
+        float textWidth = currText.Length * TEXT_WIDTH_MULTIPLYER;
+        float maxWidth = textMesh.rectTransform.rect.width;
+        if (textWidth > maxWidth)
+        {
+            string[] splitText = currText.Split(' ');
+            string currLine = "";
+            textWidth = 0f;
+            for (int i = 0; i < splitText.Length; i++)
+            {
+                if (splitText[i].Length * TEXT_WIDTH_MULTIPLYER > maxWidth)
+                {
+                    textWidth = splitText[i].Length * TEXT_WIDTH_MULTIPLYER;
+                    break;
+                }
+
+                string newText = currLine + splitText[i];
+                float newLength = newText.Length * TEXT_WIDTH_MULTIPLYER;
+                if (newLength > maxWidth)
+                {
+                    textWidth = Mathf.Max(currLine.Length * TEXT_WIDTH_MULTIPLYER, textWidth);
+                    currLine = "";
+                }
+                else
+                {
+                    currLine = newText;
+                }
+            }
+        }
+        return Mathf.Min(maxWidth, textWidth);
     }
 
     private void StartTextAnimation()
