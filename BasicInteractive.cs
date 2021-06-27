@@ -10,7 +10,7 @@ public class BasicInteractive : A_Interactive
     //the textgameobject where ever it makes sense
     [Header("Basic Interactive")]
     [SerializeField]
-    private InteractiveActionWrapper astroEnterAction;
+    protected InteractiveActionWrapper astroEnterAction;
     [SerializeField]
     private InteractiveActionWrapper astroExitAction;
     [SerializeField]

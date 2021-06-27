@@ -15,6 +15,8 @@ public abstract class A_Interactive : MonoBehaviour
     private GameObject audio3DSource;
     public GameObject Audio3DSource => audio3DSource;
 
+    protected GameObject AstroGO { get; private set; } = null;
+
     //USED FOR WWISE COLLIDERS WHICH ARE 3D
     private void OnTriggerEnter(Collider collision)
     {
@@ -55,6 +57,7 @@ public abstract class A_Interactive : MonoBehaviour
         //if we are queueing texts in OnAstroEnter
         S_AstroInteractiveQueue.Current.AddInteractive(this);
         OnAstroEnter(astroGO);
+        AstroGO = astroGO;
         astroInArea = true;
     }
 
@@ -63,6 +66,7 @@ public abstract class A_Interactive : MonoBehaviour
         OnAstroExit(astroGO);
         S_AstroInteractiveQueue.Current.RemoveInteractive(this);
         astroInArea = false;
+        astroGO = null;
 
         //Trigger on release if we left area while holding down key
         //TODO: will this possibly trigger two OnRealses
@@ -88,6 +92,12 @@ public abstract class A_Interactive : MonoBehaviour
         {
             OnReleaseInteract();
         }
+
+        AstroInAreaUpdate();
+    }
+
+    protected virtual void AstroInAreaUpdate()
+    {
     }
 
     protected virtual ITimeTravelData ComposeNewTTD()

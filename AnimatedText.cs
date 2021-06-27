@@ -11,6 +11,7 @@ public class AnimatedText : MonoBehaviour
 {
     [SerializeField]
     private TextMeshProUGUI textMesh;
+    public TextMeshProUGUI TextMesh => textMesh;
 
     [Serializable]
     public class ATDetails
@@ -53,7 +54,8 @@ public class AnimatedText : MonoBehaviour
         };
         //.ToImmutableDictionary();
 
-        public enum AT_ANCHOR { LOCAL_POS_RIGHT, LOCAL_POS_LEFT, LOCAL_POS_MIDDLE, ASTRO_LEFT, ASTRO_RIGHT, ASTRO_FRONT, ASTRO_BEHIND, TOP_RIGHT, TOP_LEFT, TOP_CENTER, CENTER, BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT }
+        public enum AT_ANCHOR { LOCAL_POS_RIGHT, LOCAL_POS_LEFT, LOCAL_POS_CENTER, ASTRO_LEFT, ASTRO_RIGHT, ASTRO_FRONT, ASTRO_BEHIND, TOP_RIGHT, TOP_LEFT, TOP_CENTER, CENTER, BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT }
+        public enum AT_ANCHOR_VERT { MIDDLE, ABOVE, BELOW }
         public enum AT_ANIM_DIR { RIGHT, LEFT, MIDDLE }
         //public enum AT_ALIGNMENT { LEFT, CENTER, RIGHT }
         public enum AT_DURATION { INDEFINITE, DEFAULT, CUSTOM }
@@ -79,6 +81,14 @@ public class AnimatedText : MonoBehaviour
         public AT_ANCHOR Anchor => anchor;
 
         [SerializeField]
+        private AT_ANCHOR_VERT anchorVertical = AT_ANCHOR_VERT.MIDDLE;
+        public AT_ANCHOR_VERT AnchorVertical => anchorVertical;
+
+        [SerializeField]
+        private bool fixedSizeInCam = false;
+        public bool FixedSizeInCam => fixedSizeInCam;
+
+        [SerializeField]
         private AT_ANIM_DIR animDirection = AT_ANIM_DIR.RIGHT;
         public AT_ANIM_DIR AnimDirection => animDirection;
 
@@ -93,27 +103,75 @@ public class AnimatedText : MonoBehaviour
         [SerializeField]
         private bool goToLastTextOnFinish = false;
         public bool GoToLastTextOnFinish => goToLastTextOnFinish;
+
+        public ATDetails(string newText, ATDetails oldATD)
+        {
+            text = newText;
+            textColor = oldATD.textColor;
+            textSize = oldATD.textSize;
+            animSpeed = oldATD.animSpeed;
+            anchor = oldATD.Anchor;
+            animDirection = oldATD.AnimDirection;
+            displayTime = oldATD.DisplayTime;
+            customDisplayTime = oldATD.CustomDisplayTime;
+            goToLastTextOnFinish = oldATD.GoToLastTextOnFinish;
+        }
     }
 
     private const float UNDERSCORE_BLINK_TIME = 1f;
-    private const float TEXT_WIDTH_MULTIPLYER = (300f - 85.8f) / 18f;//18 / 213f;
     private string currText;
+    private float currSize;
     private float currAnimTime;
     private Transform currAnchor;
     private float currDisplayTime;
     private bool indefDisplayTime = false;
     private bool goToLastTextOnFinish = false;
 
+    public Transform FixedCamAnchor { get; set; }
+    private bool followFixedCamAnchor = false;
+    private Vector3 cachedLocalPosOffset;
+    private float cachedLineCount;
+
     private ATDetails currATD;
     private ATDetails previousATD;
+
+    private void Awake()
+    {
+        //should be fine using singleton here cause these are never instanced on game start
+        textMesh.canvas.worldCamera = S_Global.Current.GetCamera();
+    }
+
+    public void StopFixedCamUpdates()
+    {
+        followFixedCamAnchor = false;
+    }
 
     public void AnimateAndSetText(ATDetails atd)
     {
         StopUnderscoreCR();
         textMesh.text = "";
         SetFromATDetails(atd);
+        //SetCamSettings();
         SetAnchorOffset();
         StartTextAnimation();
+    }
+
+    private Vector3 GetFixedCamAnchorPos()
+    {
+        if (FixedCamAnchor != null)
+        {
+            return FixedCamAnchor.position;
+        }
+       return textMesh.canvas.transform.parent.position;
+    }
+
+    private void FixedUpdate()
+    {
+        if (!followFixedCamAnchor) { return; }
+        //SetAnchorOffset();
+        textMesh.transform.position = GetFixedCamAnchorPos();//new Vector3(mahSpot.x, mahSpot.y - cachedLocalPosOffset.y / cachedLineCount, 0);
+        textMesh.transform.localPosition = new Vector3(textMesh.transform.localPosition.x, textMesh.transform.localPosition.y, 10);
+        textMesh.rectTransform.anchoredPosition += new Vector2(cachedLocalPosOffset.x, cachedLocalPosOffset.y - cachedLocalPosOffset.y / cachedLineCount);
     }
 
     private void SetFromATDetails(ATDetails atd)
@@ -124,8 +182,10 @@ public class AnimatedText : MonoBehaviour
         //for doing proper new lines with wrapping words
         currText = atd.Text.Replace("_", "_ ");
         textMesh.color = ATDetails.colorDict[atd.TextColor];
-        textMesh.fontSize = ATDetails.sizeDict[atd.TextSize];
+        currSize = ATDetails.sizeDict[atd.TextSize];
+        textMesh.fontSize = currSize;
         currAnimTime = ATDetails.animTimeDict[atd.AnimSpeed];
+        followFixedCamAnchor = atd.FixedSizeInCam;
 
         indefDisplayTime = false;
 
@@ -143,18 +203,25 @@ public class AnimatedText : MonoBehaviour
         }
 
         float halfWidthOfTextBox = textMesh.rectTransform.sizeDelta.x / 2f;
+
         textMesh.transform.localPosition = Vector3.zero;
+        textMesh.rectTransform.anchoredPosition = Vector3.zero;
+
+
+        //decide how to do sthis shiiiiiiiiit
+        //when to actually compensate for typing direction:
+        //TODO: restrictinos with checking camera fix button for astro, and camera ones?
 
         switch (atd.AnimDirection)
         {
             case ATDetails.AT_ANIM_DIR.LEFT:
-                textMesh.transform.position += new Vector3(-halfWidthOfTextBox, 0, 0);
+                textMesh.transform.localPosition += new Vector3(-halfWidthOfTextBox, 0, 0);
                 //grows from right to left, so start on right side
                 textMesh.alignment = TextAlignmentOptions.TopRight;
                 break;
 
             case ATDetails.AT_ANIM_DIR.RIGHT:
-                textMesh.transform.position += new Vector3(halfWidthOfTextBox, 0, 0);
+                textMesh.transform.localPosition += new Vector3(halfWidthOfTextBox, 0, 0);
                 textMesh.alignment = TextAlignmentOptions.TopLeft;
                 break;
 
@@ -166,12 +233,16 @@ public class AnimatedText : MonoBehaviour
         goToLastTextOnFinish = atd.GoToLastTextOnFinish;
     }
 
-    public float AnchorOffSetMultiplyer = 0f;
+    public Vector2 AnchorOffSetMultiplyer = new Vector2(0, 0);//0f;
 
     private void SetAnchorOffset()
     {
-        Vector3 pos = textMesh.transform.localPosition;
-        textMesh.transform.localPosition += new Vector3(GetCurrTextWidth() * AnchorOffSetMultiplyer, 0, 0);
+        Vector3 textDim = GetCurrTextDimensions();
+        cachedLocalPosOffset = new Vector2(textDim.x * AnchorOffSetMultiplyer.x, textDim.y * AnchorOffSetMultiplyer.y);
+
+        cachedLineCount = textDim.y / textDim.z;
+        //adding because we set the animation direction. Should only be done once when getting new text
+        textMesh.rectTransform.anchoredPosition += new Vector2(cachedLocalPosOffset.x, cachedLocalPosOffset.y - textDim.z);
     }
 
 
@@ -181,50 +252,30 @@ public class AnimatedText : MonoBehaviour
 
     private bool underscoreOn = false;
 
-    private float GetCurrTextWidth()
+    private Vector3 GetCurrTextDimensions()
     {
-        /*
-        string tempText = textMesh.text;
-        textMesh.text = currText;
-        float tempWidth = textMesh.renderedWidth;
-        Debug.LogFormat("what is this shit: {0}", tempWidth);
-        textMesh.text = tempText;
-        return tempWidth;*/
+        //this helped find the trick!
+        //https://stackoverflow.com/questions/49262758/get-number-of-rows-of-a-text
 
-        //TODO: find more accurate way to do this
-        //TODO: ALSO need to accomodate for different text sizes
+        string temp = textMesh.text;
+        textMesh.text = "_";
+        textMesh.ForceMeshUpdate();
 
-        //This takes into account wrapping and how it affects the actual max width displayed
-        float textWidth = currText.Length * TEXT_WIDTH_MULTIPLYER;
-        float maxWidth = textMesh.rectTransform.rect.width;
-        if (textWidth > maxWidth)
-        {
-            string[] splitText = currText.Split(' ');
-            string currLine = "";
-            textWidth = 0f;
-            for (int i = 0; i < splitText.Length; i++)
-            {
-                if (splitText[i].Length * TEXT_WIDTH_MULTIPLYER > maxWidth)
-                {
-                    textWidth = splitText[i].Length * TEXT_WIDTH_MULTIPLYER;
-                    break;
-                }
+        float singleLineHeight = textMesh.renderedHeight;
 
-                string newText = currLine + splitText[i];
-                float newLength = newText.Length * TEXT_WIDTH_MULTIPLYER;
-                if (newLength > maxWidth)
-                {
-                    textWidth = Mathf.Max(currLine.Length * TEXT_WIDTH_MULTIPLYER, textWidth);
-                    currLine = "";
-                }
-                else
-                {
-                    currLine = newText;
-                }
-            }
-        }
-        return Mathf.Min(maxWidth, textWidth);
+        textMesh.text = currText + "_";
+        textMesh.ForceMeshUpdate();
+
+        float maxWidth = textMesh.renderedWidth;
+        float maxHeight = textMesh.renderedHeight;
+
+        textMesh.text = temp;
+        textMesh.ForceMeshUpdate();
+        Debug.LogFormat("width, height, line height: {0}, {1}, {2}", maxWidth, maxHeight, singleLineHeight);
+        //just using a vect3 to save the singleLineHeight, nothing to do with z axis
+        return new Vector3(maxWidth, maxHeight, singleLineHeight);
     }
+
 
     private void StartTextAnimation()
     {

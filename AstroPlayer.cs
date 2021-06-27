@@ -367,9 +367,10 @@ public class AstroPlayer : MonoBehaviour
     private void S_TimeTravel_ComposeAstroTTD()
     {
         AstroTimeTravelData ttd = S_TimeTravel.Current.InFuture() ? pastTTD : futureTTD;
-        RaycastHit2D closestGroundSpot = GetClosestGroundCollision();
+        RaycastHit2D closestGroundSpot = GetClosestGroundCollision(rb, cf);
         ttd.groundObject = closestGroundSpot.collider.gameObject;
-        ttd.astroLocalGroundObjectPos = closestGroundSpot.point - ttd.GroundObjectPos + new Vector2(0, astroCollider.size.y);
+        //TODO: add a method to the universal utilities singleton so that we don't have to manually make up for scale when adjusting position / getting the size of the capsule
+        ttd.astroLocalGroundObjectPos = closestGroundSpot.point - ttd.GroundObjectPos + new Vector2(0, astroCollider.size.y * transform.localScale.y / 2f);
         ttd.health = health;
     }
 
@@ -385,7 +386,7 @@ public class AstroPlayer : MonoBehaviour
         health = ttd.health;
     }
 
-    private RaycastHit2D GetClosestGroundCollision()
+    public static RaycastHit2D GetClosestGroundCollision(Rigidbody2D rb, ContactFilter2D cf)
     {
         RaycastHit2D[] results = new RaycastHit2D[MAX_COLLISIONS];
 
@@ -414,13 +415,18 @@ public class AstroPlayer : MonoBehaviour
 
     private void Start()
     {
+        InitContactFilterSettings(cf, gameObject);
+    }
+
+    public static void InitContactFilterSettings(ContactFilter2D cf, GameObject gameObject)
+    {
+        //TODO: add to future utilities singleton
         //TODO:impelemnt this shit in the project settings
 
         cf.useTriggers = false; //ignore trigger colliders (b/c they gonna act as area 2ds)
         //set the layer mask to the one this game object has
         cf.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
         cf.useLayerMask = true; //filter via layer mask in project settings
-
     }
 
     private void Update()

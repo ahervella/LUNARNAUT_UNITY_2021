@@ -8,7 +8,7 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
     [SerializeField]
     private AnimatedText animatedTextPrefab;
 
-    public AnimatedText InstanceAnimatedText(Transform parent)
+    private AnimatedText InstanceAnimatedText(Transform parent)
     {
         if (animatedTextPrefab == null)
         {
@@ -19,69 +19,56 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
     }
 
 
-    public AnimatedText StartNewTextAnimation(ATDetails atd, Transform customParent, AnimatedText specificATDToReuse )
+    public AnimatedText StartNewTextAnimation(ATDetails atd, Transform customParent, AnimatedText specificATToReuse )
     {
+        if (specificATToReuse != null)
+        {
+            //need to stop this update before we change the FixedCamAnchor & reset to what default prefab would be
+            specificATToReuse.StopFixedCamUpdates();
+            specificATToReuse.FixedCamAnchor = null;
+            specificATToReuse.transform.parent = customParent;
+            specificATToReuse.transform.localPosition = Vector3.zero;
+            specificATToReuse.TextMesh.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            specificATToReuse.TextMesh.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        }
+
+        if (atd.FixedSizeInCam)
+        {
+            SetCameraAsParent(ref specificATToReuse);
+            //need to do after this method so that we don't have a null at
+            specificATToReuse.FixedCamAnchor = customParent;
+        }
+
         switch (atd.Anchor)
         {
             case ATDetails.AT_ANCHOR.LOCAL_POS_RIGHT:
-                if (specificATDToReuse == null)
-                {
-                    specificATDToReuse = InstanceAnimatedText(customParent);
-                }
-
-                AssignOffset(ref specificATDToReuse, atd, side: 1);
-                break;
-
             case ATDetails.AT_ANCHOR.LOCAL_POS_LEFT:
-                if (specificATDToReuse == null)
-                {
-                    specificATDToReuse = InstanceAnimatedText(customParent);
-                }
-
-                AssignOffset(ref specificATDToReuse, atd, side: -1);
-                break;
-
-            case ATDetails.AT_ANCHOR.LOCAL_POS_MIDDLE:
-                if (specificATDToReuse == null)
-                {
-                    specificATDToReuse = InstanceAnimatedText(customParent);
-                }
-
-                AssignOffset(ref specificATDToReuse, atd, side: 0);
+            case ATDetails.AT_ANCHOR.LOCAL_POS_CENTER:
+                SetLocalAnchor(ref specificATToReuse, atd, customParent);
                 break;
 
             case ATDetails.AT_ANCHOR.ASTRO_LEFT:
             case ATDetails.AT_ANCHOR.ASTRO_RIGHT:
             case ATDetails.AT_ANCHOR.ASTRO_FRONT:
             case ATDetails.AT_ANCHOR.ASTRO_BEHIND:
-                SetAstroAnchor(ref specificATDToReuse, atd);
+                SetAstroAnchor(ref specificATToReuse, atd);
                 break;
 
-            default:
-                if (specificATDToReuse == null)
-                {
-                    //camera may use multiple text in multiple locations so no need to worry about having multiple of them
-                    specificATDToReuse = InstanceAnimatedText(S_Global.Current.GetAstroPlayer().transform);
-                }
-                SetAsCameraAnchor(ref specificATDToReuse, atd.Anchor);
+            case ATDetails.AT_ANCHOR.BOTTOM_LEFT:
+            case ATDetails.AT_ANCHOR.BOTTOM_CENTER:
+            case ATDetails.AT_ANCHOR.BOTTOM_RIGHT:
+            case ATDetails.AT_ANCHOR.TOP_LEFT:
+            case ATDetails.AT_ANCHOR.TOP_CENTER:
+            case ATDetails.AT_ANCHOR.TOP_RIGHT:
+            case ATDetails.AT_ANCHOR.CENTER:
+                SetCameraAnchor(ref specificATToReuse, atd);
                 break;
         }
 
-        specificATDToReuse.AnimateAndSetText(atd);
-        return specificATDToReuse;
+
+        specificATToReuse.AnimateAndSetText(atd);
+        return specificATToReuse;
     }
-
-    /*
-    private void SetLeftAnchor(AnimatedText specificATDToReuse, ATDetails.AT_ANCHOR anchor)
-    {
-        float offset = 0;
-        if (anchor == ATDetails.AT_ANCHOR.LOCAL_POS_LEFT)
-        {
-            offset = specificATDToReuse.GetCurrTextWidth();
-        }
-
-        specificATDToReuse.transform.localPosition = new Vector3(-offset, 0, 0);
-    }*/
 
     //"If you're talking advice wise... working on something, you could work on the final,
     //greatest thing you'll ever do, but as soon as you're done you need to move on and realize you can do better."
@@ -89,35 +76,85 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
 
     private void AssignOffset(ref AnimatedText at, ATDetails details, int side)
     {
-        if (details.AnimDirection == ATDetails.AT_ANIM_DIR.LEFT && side > 0)
+        /*if (details.AnimDirection == ATDetails.AT_ANIM_DIR.LEFT && side > 0)
         {
-            at.AnchorOffSetMultiplyer = 1f;
+            at.AnchorOffSetMultiplyer.x = 1f;
         }
         else if (details.AnimDirection == ATDetails.AT_ANIM_DIR.RIGHT && side < 0)
         {
-            at.AnchorOffSetMultiplyer = -1f;
+            at.AnchorOffSetMultiplyer.x = -1f;
         }
         else if (side == 0)
         {
             if (details.AnimDirection == ATDetails.AT_ANIM_DIR.RIGHT)
             {
-                at.AnchorOffSetMultiplyer = -0.5f;
+                at.AnchorOffSetMultiplyer.x = -0.5f;
             }
             else if (details.AnimDirection == ATDetails.AT_ANIM_DIR.LEFT)
             {
-                at.AnchorOffSetMultiplyer = 0.5f;
+                at.AnchorOffSetMultiplyer.x = 0.5f;
             }
             //middle typing text is taken care of when text animated in AnimatedText.cs
         }
         else
         {
-            at.AnchorOffSetMultiplyer = 0f;
+            at.AnchorOffSetMultiplyer.x = 0f;
+        }*/
+
+        if (side > 0)
+        {
+            at.AnchorOffSetMultiplyer.x = 0.5f;
+        }
+        else if (side < 0)
+        {
+            at.AnchorOffSetMultiplyer.x = -0.5f;
+        }
+        else
+        {
+            at.AnchorOffSetMultiplyer.x = 0f;
+        }
+
+        switch (details.AnchorVertical)
+        {
+            case ATDetails.AT_ANCHOR_VERT.BELOW:
+                at.AnchorOffSetMultiplyer.y = 0f;
+                break;
+
+            case ATDetails.AT_ANCHOR_VERT.ABOVE:
+                at.AnchorOffSetMultiplyer.y = 1f;
+                break;
+
+            case ATDetails.AT_ANCHOR_VERT.MIDDLE:
+                at.AnchorOffSetMultiplyer.y = 0.5f;
+                break;
+        }
+    }
+
+    private void SetLocalAnchor(ref AnimatedText at, ATDetails details, Transform customParent)
+    {
+        if (at == null)
+        {
+            at = InstanceAnimatedText(customParent);
+        }
+
+        switch (details.Anchor)
+        {
+            case ATDetails.AT_ANCHOR.LOCAL_POS_RIGHT:
+                AssignOffset(ref at, details, side: 1);
+                break;
+
+            case ATDetails.AT_ANCHOR.LOCAL_POS_LEFT:
+                AssignOffset(ref at, details, side: -1);
+                break;
+
+            case ATDetails.AT_ANCHOR.LOCAL_POS_CENTER:
+                AssignOffset(ref at, details, side: 0);
+                break;
         }
     }
 
     private void SetAstroAnchor(ref AnimatedText at, ATDetails details)
     {
-
         AstroPlayer astroPlayer = S_Global.Current.GetAstroPlayer();
         Transform posTrans;
 
@@ -160,10 +197,76 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
 
 
 
-    private void SetAsCameraAnchor(ref AnimatedText at, ATDetails.AT_ANCHOR anchor)
+    private void SetCameraAnchor(ref AnimatedText at, ATDetails details)
+    {
+        SetCameraAsParent(ref at);
+
+        at.transform.localPosition = Vector3.zero;
+        at.AnchorOffSetMultiplyer = Vector2.zero;
+
+        switch (details.Anchor)
+        {
+            case ATDetails.AT_ANCHOR.BOTTOM_CENTER:
+                //need to set the textmesh position b/c can't move at local position if it's canvas is set to render on cam
+                at.TextMesh.rectTransform.anchorMax = new Vector2(0.5f, 0);
+                at.TextMesh.rectTransform.anchorMin = new Vector2(0.5f, 0);
+                AssignOffset(ref at, details, side: 0);
+                break;
+
+            case ATDetails.AT_ANCHOR.BOTTOM_LEFT:
+                at.TextMesh.rectTransform.anchorMax = new Vector2(0, 0);
+                at.TextMesh.rectTransform.anchorMin = new Vector2(0, 0);
+                AssignOffset(ref at, details, side: 1);
+                break;
+
+            case ATDetails.AT_ANCHOR.BOTTOM_RIGHT:
+                at.TextMesh.rectTransform.anchorMax = new Vector2(1, 0);
+                at.TextMesh.rectTransform.anchorMin = new Vector2(1, 0);
+                AssignOffset(ref at, details, side: -1);
+                break;
+
+            case ATDetails.AT_ANCHOR.TOP_CENTER:
+                at.TextMesh.rectTransform.anchorMax = new Vector2(0.5f, 1);
+                at.TextMesh.rectTransform.anchorMin = new Vector2(0.5f, 1);
+                AssignOffset(ref at, details, side: 0);
+                break;
+
+            case ATDetails.AT_ANCHOR.TOP_LEFT:
+                at.TextMesh.rectTransform.anchorMax = new Vector2(0, 1);
+                at.TextMesh.rectTransform.anchorMin = new Vector2(0, 1);
+                AssignOffset(ref at, details, side: 1);
+                break;
+
+            case ATDetails.AT_ANCHOR.TOP_RIGHT:
+                at.TextMesh.rectTransform.anchorMax = new Vector2(1, 1);
+                at.TextMesh.rectTransform.anchorMin = new Vector2(1, 1);
+                Debug.LogFormat("Scale factor: {0}", at.TextMesh.canvas.scaleFactor);
+                //AssignOffset(ref at, details, side: 1);
+                break;
+
+            case ATDetails.AT_ANCHOR.CENTER:
+                at.TextMesh.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                at.TextMesh.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+                AssignOffset(ref at, details, side: 0);
+                break;
+        }
+
+        at.TextMesh.transform.localPosition = Vector3.zero;
+    }
+
+    private void SetCameraAsParent(ref AnimatedText at)
     {
         Camera gameCam = S_Global.Current.GetCamera();
-        //transform.parent = gameCam.transform;
-        //align...
+
+        if (at == null)
+        {
+            //camera may use multiple text in multiple locations so no need to worry about having multiple of them
+            at = InstanceAnimatedText(gameCam.transform);
+        }
+        else
+        {
+            at.transform.parent = gameCam.transform;
+        }
+        at.TextMesh.canvas.renderMode = RenderMode.ScreenSpaceCamera;
     }
 }
