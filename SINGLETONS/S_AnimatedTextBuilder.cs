@@ -76,31 +76,6 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
 
     private void AssignOffset(ref AnimatedText at, ATDetails details, int side)
     {
-        /*if (details.AnimDirection == ATDetails.AT_ANIM_DIR.LEFT && side > 0)
-        {
-            at.AnchorOffSetMultiplyer.x = 1f;
-        }
-        else if (details.AnimDirection == ATDetails.AT_ANIM_DIR.RIGHT && side < 0)
-        {
-            at.AnchorOffSetMultiplyer.x = -1f;
-        }
-        else if (side == 0)
-        {
-            if (details.AnimDirection == ATDetails.AT_ANIM_DIR.RIGHT)
-            {
-                at.AnchorOffSetMultiplyer.x = -0.5f;
-            }
-            else if (details.AnimDirection == ATDetails.AT_ANIM_DIR.LEFT)
-            {
-                at.AnchorOffSetMultiplyer.x = 0.5f;
-            }
-            //middle typing text is taken care of when text animated in AnimatedText.cs
-        }
-        else
-        {
-            at.AnchorOffSetMultiplyer.x = 0f;
-        }*/
-
         if (side > 0)
         {
             at.AnchorOffSetMultiplyer.x = 0.5f;

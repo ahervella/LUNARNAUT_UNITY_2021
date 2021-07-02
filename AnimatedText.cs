@@ -56,7 +56,7 @@ public class AnimatedText : MonoBehaviour
 
         public enum AT_ANCHOR { LOCAL_POS_RIGHT, LOCAL_POS_LEFT, LOCAL_POS_CENTER, ASTRO_LEFT, ASTRO_RIGHT, ASTRO_FRONT, ASTRO_BEHIND, TOP_RIGHT, TOP_LEFT, TOP_CENTER, CENTER, BOTTOM_CENTER, BOTTOM_LEFT, BOTTOM_RIGHT }
         public enum AT_ANCHOR_VERT { MIDDLE, ABOVE, BELOW }
-        public enum AT_ANIM_DIR { RIGHT, LEFT, MIDDLE }
+        public enum AT_ANIM_DIR { RIGHT, LEFT, MIDDLE, FLUSH }
         //public enum AT_ALIGNMENT { LEFT, CENTER, RIGHT }
         public enum AT_DURATION { INDEFINITE, DEFAULT, CUSTOM }
 
@@ -85,7 +85,7 @@ public class AnimatedText : MonoBehaviour
         public AT_ANCHOR_VERT AnchorVertical => anchorVertical;
 
         [SerializeField]
-        private bool fixedSizeInCam = false;
+        private bool fixedSizeInCam = true;
         public bool FixedSizeInCam => fixedSizeInCam;
 
         [SerializeField]
@@ -122,7 +122,6 @@ public class AnimatedText : MonoBehaviour
     private string currText;
     private float currSize;
     private float currAnimTime;
-    private Transform currAnchor;
     private float currDisplayTime;
     private bool indefDisplayTime = false;
     private bool goToLastTextOnFinish = false;
@@ -185,7 +184,7 @@ public class AnimatedText : MonoBehaviour
         currSize = ATDetails.sizeDict[atd.TextSize];
         textMesh.fontSize = currSize;
         currAnimTime = ATDetails.animTimeDict[atd.AnimSpeed];
-        followFixedCamAnchor = atd.FixedSizeInCam;
+        followFixedCamAnchor = atd.FixedSizeInCam && !IsAstroAnchor(atd);
 
         indefDisplayTime = false;
 
@@ -202,10 +201,6 @@ public class AnimatedText : MonoBehaviour
                 break;
         }
 
-        float halfWidthOfTextBox = textMesh.rectTransform.sizeDelta.x / 2f;
-
-        textMesh.transform.localPosition = Vector3.zero;
-        textMesh.rectTransform.anchoredPosition = Vector3.zero;
 
 
         //decide how to do sthis shiiiiiiiiit
@@ -215,28 +210,46 @@ public class AnimatedText : MonoBehaviour
         switch (atd.AnimDirection)
         {
             case ATDetails.AT_ANIM_DIR.LEFT:
-                textMesh.transform.localPosition += new Vector3(-halfWidthOfTextBox, 0, 0);
-                //grows from right to left, so start on right side
                 textMesh.alignment = TextAlignmentOptions.TopRight;
                 break;
 
             case ATDetails.AT_ANIM_DIR.RIGHT:
-                textMesh.transform.localPosition += new Vector3(halfWidthOfTextBox, 0, 0);
                 textMesh.alignment = TextAlignmentOptions.TopLeft;
                 break;
 
             case ATDetails.AT_ANIM_DIR.MIDDLE:
-                textMesh.alignment = TextAlignmentOptions.TopFlush;
+                textMesh.alignment = TextAlignmentOptions.Top;
+                break;
+
+            case ATDetails.AT_ANIM_DIR.FLUSH:
+                textMesh.alignment = TextAlignmentOptions.Top;
                 break;
         }
 
         goToLastTextOnFinish = atd.GoToLastTextOnFinish;
     }
 
+    private bool IsAstroAnchor(ATDetails atd)
+    {
+        switch (atd.Anchor)
+        {
+            case ATDetails.AT_ANCHOR.ASTRO_BEHIND:
+            case ATDetails.AT_ANCHOR.ASTRO_FRONT:
+            case ATDetails.AT_ANCHOR.ASTRO_LEFT:
+            case ATDetails.AT_ANCHOR.ASTRO_RIGHT:
+                return true;
+        }
+
+        return false;
+    }
+
     public Vector2 AnchorOffSetMultiplyer = new Vector2(0, 0);//0f;
 
     private void SetAnchorOffset()
     {
+        textMesh.transform.localPosition = Vector3.zero;
+        textMesh.rectTransform.anchoredPosition = Vector3.zero;
+
         Vector3 textDim = GetCurrTextDimensions();
         cachedLocalPosOffset = new Vector2(textDim.x * AnchorOffSetMultiplyer.x, textDim.y * AnchorOffSetMultiplyer.y);
 
