@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class BI_Door : BasicInteractive
 {
-    private enum DOOR_ENTRANCE { BOTH, RIGHT_SIDE_ONLY, LEFT_SIDE_ONLY}
+    private enum DOOR_ENTRANCE { BOTH, ENTER_RIGHT_SIDE_ONLY, ENTER_LEFT_SIDE_ONLY}
 
     [Header("Door")]
     [SerializeField]
@@ -18,8 +18,9 @@ public class BI_Door : BasicInteractive
     //TODO: split trigger into two somehow to be visible to editor?
     [SerializeField]
     private DOOR_ENTRANCE oneWayBehavior = DOOR_ENTRANCE.BOTH;
-
+    [SerializeField]
     private BoxCollider2D closedColl;
+
     //TODO: custom closedCollider, one way doors...
     //TODO: implement airlock logic
 
@@ -27,12 +28,6 @@ public class BI_Door : BasicInteractive
     private AK.Wwise.Event doorOpenEvent;
 
     private bool astroOnRightSide;
-
-    protected override void Awake()
-    {
-        base.Awake();
-        closedColl = GetComponentInChildren<BoxCollider2D>();
-    }
 
     protected override void OnAstroEnter(GameObject astroGO)
     {
@@ -56,9 +51,9 @@ public class BI_Door : BasicInteractive
         {
             case DOOR_ENTRANCE.BOTH:
                 return false;
-            case DOOR_ENTRANCE.LEFT_SIDE_ONLY:
+            case DOOR_ENTRANCE.ENTER_LEFT_SIDE_ONLY:
                 return astroOnRightSide;
-            case DOOR_ENTRANCE.RIGHT_SIDE_ONLY:
+            case DOOR_ENTRANCE.ENTER_RIGHT_SIDE_ONLY:
                 return !astroOnRightSide;
             default:
                 return false;

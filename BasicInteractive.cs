@@ -139,23 +139,29 @@ public class BasicInteractive : A_Interactive
         if (AllInteractArgumentsTrue())
         {
             Interacted = true;
-            animatedText = succesfulInteractAction.TryCompleteAction(this, animatedText);
+
+            AnimateSuccessfulInteractionText();
             ExecuteAllReactions(interactReactions);
             OnSuccessfulInteract();
         }
         else
         {
             animatedText = failedInteractAction.TryCompleteAction(this, animatedText);
-            OnAllInteractArgumentsFalse();
+            OnUnsuccessfulInteract();
         }
     }
 
-    protected virtual void OnSuccessfulInteract()
+    private void AnimateSuccessfulInteractionText()
     {
-        if (deanimateTextOnSuccess && animatedText != null)
+        //Want to make sure this only happens if we don't have an on success text coming up (hence last condition in if statement)
+        if (deanimateTextOnSuccess && animatedText != null && !succesfulInteractAction.AnimTextCont.CanAnimate())
         {
             animatedText.DeanimateText();
         }
+
+        //^^ Needs to happen before this so that bool for is WasAnimated in ATCont is marked after that check
+
+        animatedText = succesfulInteractAction.TryCompleteAction(this, animatedText);
 
         if (useCustomInteractTime)
         {
@@ -167,13 +173,18 @@ public class BasicInteractive : A_Interactive
         }
     }
 
+    protected virtual void OnSuccessfulInteract()
+    {
+        
+    }
+
     private IEnumerator CustomInteractTimeCR()
     {
         yield return new WaitForSeconds(customInteractTime);
         Interacted = false;
     }
 
-    protected virtual void OnAllInteractArgumentsFalse() { }
+    protected virtual void OnUnsuccessfulInteract() { }
 
     protected bool AllInteractArgumentsTrue()
     {

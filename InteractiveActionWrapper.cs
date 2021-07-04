@@ -104,20 +104,18 @@ public class InteractiveActionWrapper
     public AnimatedText TryTextAnim(A_Interactive aint, AnimatedText at)
     {
         AnimatedText.ATDetails details;
-        if (AnimTextCont?.UseTemplate != null)
+
+        if (AnimTextCont?.CanAnimate() ?? false)
         {
-            details = AnimTextCont.UseTemplate.Details;
-        }
-        //only use ones we got 
-        else if(AnimTextCont.Details.Text != string.Empty)
-        {
-            details = AnimTextCont.Details;
+            details = AnimTextCont.UseTemplate?.Details ?? AnimTextCont.Details;
         }
         else
         {
             //just return what ever we tried to feed it if we got no text details to animate.
             return at;
         }
+
+        AnimTextCont.MarkAnimated();
 
         Transform parent = AnimTextCont.CustomParent != null ? AnimTextCont.CustomParent : aint.transform;
         return S_AnimatedTextBuilder.Current.StartNewTextAnimation(details, parent, at);

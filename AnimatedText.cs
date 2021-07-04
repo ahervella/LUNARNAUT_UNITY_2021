@@ -24,6 +24,7 @@ public class AnimatedText : MonoBehaviour
 
         public const float DEANIMATE_TIME = 0.5f;
         public const float DEFAULT_DISPLAY_TIME = 3.0f;
+        public const float DEFAULT_TEXT_BOX_WIDTH = 200f;
 
         public enum AT_COLOR { INFO, SUCCESS, WARNING, FAILURE }
         public static readonly Dictionary<AT_COLOR, Color> colorDict = new Dictionary<AT_COLOR, Color>
@@ -48,9 +49,9 @@ public class AnimatedText : MonoBehaviour
         public enum AT_ANIM_TIME { SLOW, NORM, FAST }
         public static readonly Dictionary<AT_ANIM_TIME, float> animTimeDict = new Dictionary<AT_ANIM_TIME, float>
         {
-            { AT_ANIM_TIME.SLOW, 0.5f },
+            { AT_ANIM_TIME.SLOW, 4f },
             { AT_ANIM_TIME.NORM, 1f },
-            { AT_ANIM_TIME.FAST, 4f }
+            { AT_ANIM_TIME.FAST, 0.5f }
         };
         //.ToImmutableDictionary();
 
@@ -59,6 +60,7 @@ public class AnimatedText : MonoBehaviour
         public enum AT_ANIM_DIR { RIGHT, LEFT, MIDDLE, FLUSH }
         //public enum AT_ALIGNMENT { LEFT, CENTER, RIGHT }
         public enum AT_DURATION { INDEFINITE, DEFAULT, CUSTOM }
+        public enum AT_TEXT_BOX_WIDTH { PREFAB_DEFAULT, CUSTOM }
 
         [SerializeField]
         private string text;
@@ -75,7 +77,7 @@ public class AnimatedText : MonoBehaviour
         [SerializeField]
         private AT_ANIM_TIME animSpeed = AT_ANIM_TIME.NORM;
         public AT_ANIM_TIME AnimSpeed => animSpeed;
-        
+
         [SerializeField]
         private AT_ANCHOR anchor = AT_ANCHOR.LOCAL_POS_RIGHT;
         public AT_ANCHOR Anchor => anchor;
@@ -100,6 +102,15 @@ public class AnimatedText : MonoBehaviour
         private float customDisplayTime = DEFAULT_DISPLAY_TIME;
         public float CustomDisplayTime => customDisplayTime;
 
+
+        [SerializeField]
+        private AT_TEXT_BOX_WIDTH textBoxWidth = AT_TEXT_BOX_WIDTH.CUSTOM;
+        public AT_TEXT_BOX_WIDTH TextBoxWidth => textBoxWidth;
+
+        [SerializeField]
+        private float customTextBoxWidth = DEFAULT_TEXT_BOX_WIDTH;
+        public float CustomTexBoxWidth => customTextBoxWidth;
+
         [SerializeField]
         private bool goToLastTextOnFinish = false;
         public bool GoToLastTextOnFinish => goToLastTextOnFinish;
@@ -116,6 +127,11 @@ public class AnimatedText : MonoBehaviour
             customDisplayTime = oldATD.CustomDisplayTime;
             goToLastTextOnFinish = oldATD.GoToLastTextOnFinish;
         }
+
+        public bool ShouldAnimate()
+        {
+            return text != String.Empty;
+        }
     }
 
     private const float UNDERSCORE_BLINK_TIME = 1f;
@@ -123,6 +139,7 @@ public class AnimatedText : MonoBehaviour
     private float currSize;
     private float currAnimTime;
     private float currDisplayTime;
+    private float currAnimDir;
     private bool indefDisplayTime = false;
     private bool goToLastTextOnFinish = false;
 
@@ -151,6 +168,7 @@ public class AnimatedText : MonoBehaviour
         textMesh.text = "";
         SetFromATDetails(atd);
         //SetCamSettings();
+        SetTextBoxWidth(atd);
         SetAnchorOffset();
         StartTextAnimation();
     }
@@ -184,7 +202,7 @@ public class AnimatedText : MonoBehaviour
         currSize = ATDetails.sizeDict[atd.TextSize];
         textMesh.fontSize = currSize;
         currAnimTime = ATDetails.animTimeDict[atd.AnimSpeed];
-        followFixedCamAnchor = atd.FixedSizeInCam && !IsAstroAnchor(atd);
+        followFixedCamAnchor = atd.FixedSizeInCam;// && !IsAstroAnchor(atd);
 
         indefDisplayTime = false;
 
@@ -211,17 +229,21 @@ public class AnimatedText : MonoBehaviour
         {
             case ATDetails.AT_ANIM_DIR.LEFT:
                 textMesh.alignment = TextAlignmentOptions.TopRight;
+                currAnimDir = -1f;
                 break;
 
             case ATDetails.AT_ANIM_DIR.RIGHT:
                 textMesh.alignment = TextAlignmentOptions.TopLeft;
+                currAnimDir = 1f;
                 break;
 
             case ATDetails.AT_ANIM_DIR.MIDDLE:
                 textMesh.alignment = TextAlignmentOptions.Top;
+                currAnimDir = 0f;
                 break;
 
             case ATDetails.AT_ANIM_DIR.FLUSH:
+                currAnimDir = 0f;
                 textMesh.alignment = TextAlignmentOptions.Top;
                 break;
         }
@@ -229,21 +251,14 @@ public class AnimatedText : MonoBehaviour
         goToLastTextOnFinish = atd.GoToLastTextOnFinish;
     }
 
-    private bool IsAstroAnchor(ATDetails atd)
-    {
-        switch (atd.Anchor)
-        {
-            case ATDetails.AT_ANCHOR.ASTRO_BEHIND:
-            case ATDetails.AT_ANCHOR.ASTRO_FRONT:
-            case ATDetails.AT_ANCHOR.ASTRO_LEFT:
-            case ATDetails.AT_ANCHOR.ASTRO_RIGHT:
-                return true;
-        }
-
-        return false;
-    }
-
     public Vector2 AnchorOffSetMultiplyer = new Vector2(0, 0);//0f;
+
+    private void SetTextBoxWidth(ATDetails atd)
+    {
+        float currHeight = textMesh.rectTransform.rect.height;
+        float newWidth = atd.TextBoxWidth == ATDetails.AT_TEXT_BOX_WIDTH.CUSTOM ? atd.CustomTexBoxWidth : ATDetails.DEFAULT_TEXT_BOX_WIDTH;
+        textMesh.rectTransform.sizeDelta = new Vector2(newWidth, currHeight);
+    }
 
     private void SetAnchorOffset()
     {
@@ -251,13 +266,18 @@ public class AnimatedText : MonoBehaviour
         textMesh.rectTransform.anchoredPosition = Vector3.zero;
 
         Vector3 textDim = GetCurrTextDimensions();
-        cachedLocalPosOffset = new Vector2(textDim.x * AnchorOffSetMultiplyer.x, textDim.y * AnchorOffSetMultiplyer.y);
+
+        float currTextBoxHeight = textMesh.rectTransform.rect.height;
+        textMesh.rectTransform.sizeDelta = new Vector2(textDim.x + 1, currTextBoxHeight);
+
+        float trueCenterOffset = GetCurrTextCenterOffset(textDim.x);
+
+        cachedLocalPosOffset = new Vector2(textDim.x * AnchorOffSetMultiplyer.x + trueCenterOffset, textDim.y * AnchorOffSetMultiplyer.y);
 
         cachedLineCount = textDim.y / textDim.z;
         //adding because we set the animation direction. Should only be done once when getting new text
-        textMesh.rectTransform.anchoredPosition += new Vector2(cachedLocalPosOffset.x, cachedLocalPosOffset.y - textDim.z);
+        //textMesh.rectTransform.anchoredPosition += new Vector2(cachedLocalPosOffset.x, cachedLocalPosOffset.y - textDim.z);
     }
-
 
     private Coroutine animatingCR;
     private Coroutine deanimatingCR;
@@ -270,6 +290,8 @@ public class AnimatedText : MonoBehaviour
         //this helped find the trick!
         //https://stackoverflow.com/questions/49262758/get-number-of-rows-of-a-text
 
+        //need to know height of one line because TMP starts anchor below first line
+        //also will need so we can figure out number of lines text has
         string temp = textMesh.text;
         textMesh.text = "_";
         textMesh.ForceMeshUpdate();
@@ -289,6 +311,11 @@ public class AnimatedText : MonoBehaviour
         return new Vector3(maxWidth, maxHeight, singleLineHeight);
     }
 
+    private float GetCurrTextCenterOffset(float textWidth)
+    {
+        float maxWidth = textMesh.rectTransform.rect.width;
+        return (maxWidth - textWidth) / 2f * currAnimDir;
+    }
 
     private void StartTextAnimation()
     {

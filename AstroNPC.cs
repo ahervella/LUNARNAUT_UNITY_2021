@@ -30,9 +30,28 @@ public class AstroNPC : A_Interactive
     {
         //I know kinda jank but whatever, don't have a utilities class/singleton...should probably make one
         AstroPlayer. InitContactFilterSettings(cf, gameObject);
+        MoveNPCToFloor();
+        FaceRight(startFacingRight);
+    }
+
+    private void MoveNPCToFloor()
+    {
+        //the NPC collider is really meant to be used for interactive detection with astro
+        //cheap trick to make sure when moving to the ground we don't bump into things on the side from the long colldier
+        CapsuleCollider2D coll = GetComponent<CapsuleCollider2D>();
+        Vector2 ogDimensions = coll.size;
+        CapsuleDirection2D ogOrientation = coll.direction;
+
+        coll.size = new Vector2(1, ogDimensions.y);
+        coll.direction = CapsuleDirection2D.Vertical;
+
         RaycastHit2D closestGroundSpot = AstroPlayer.GetClosestGroundCollision(GetComponent<Rigidbody2D>(), cf);
         float yPos = (GetComponent<CapsuleCollider2D>().size.y * transform.localScale.y / 2f) + closestGroundSpot.point.y;
         transform.position = new Vector3(transform.position.x, yPos, transform.position.z);
+
+        //restore collider original specs
+        coll.size = ogDimensions;
+        coll.direction = ogOrientation;
     }
 
     protected override void OnAstroEnter(GameObject astroGO)
@@ -45,7 +64,7 @@ public class AstroNPC : A_Interactive
 
         Transform atParent = animatedTextParent != null ? animatedTextParent : transform;
 
-        if (firstInteraction && firstInteractionText.Text != "")
+        if (firstInteraction && firstInteractionText.ShouldAnimate())
         {
             firstInteraction = false;
             at = S_AnimatedTextBuilder.Current.StartNewTextAnimation(firstInteractionText, atParent, at);

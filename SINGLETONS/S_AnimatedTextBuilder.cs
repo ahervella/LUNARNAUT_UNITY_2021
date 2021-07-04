@@ -32,13 +32,6 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
             specificATToReuse.TextMesh.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
         }
 
-        if (atd.FixedSizeInCam)
-        {
-            SetCameraAsParent(ref specificATToReuse);
-            //need to do after this method so that we don't have a null at
-            specificATToReuse.FixedCamAnchor = customParent;
-        }
-
         switch (atd.Anchor)
         {
             case ATDetails.AT_ANCHOR.LOCAL_POS_RIGHT:
@@ -51,7 +44,7 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
             case ATDetails.AT_ANCHOR.ASTRO_RIGHT:
             case ATDetails.AT_ANCHOR.ASTRO_FRONT:
             case ATDetails.AT_ANCHOR.ASTRO_BEHIND:
-                SetAstroAnchor(ref specificATToReuse, atd);
+                customParent = SetAndGetAstroAnchor(ref specificATToReuse, atd);
                 break;
 
             case ATDetails.AT_ANCHOR.BOTTOM_LEFT:
@@ -65,6 +58,12 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
                 break;
         }
 
+        if (atd.FixedSizeInCam)
+        {
+            SetCameraAsParent(ref specificATToReuse);
+            //need to do after this method so that we don't have a null at
+            specificATToReuse.FixedCamAnchor = customParent;
+        }
 
         specificATToReuse.AnimateAndSetText(atd);
         return specificATToReuse;
@@ -128,7 +127,7 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
         }
     }
 
-    private void SetAstroAnchor(ref AnimatedText at, ATDetails details)
+    private Transform SetAndGetAstroAnchor(ref AnimatedText at, ATDetails details)
     {
         AstroPlayer astroPlayer = S_Global.Current.GetAstroPlayer();
         Transform posTrans;
@@ -149,19 +148,12 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
                 break;
         }
 
-
-        if (at == null)
-        {
-            at = InstanceAnimatedText(posTrans);
-        }
-        else // set the parent to the right one if not already
-        {
-            at.transform.parent = posTrans;
-            at.transform.localPosition = Vector3.zero;
-        }
+        SetParent(ref at, posTrans);
 
         //cheap trick to see which of the two sides we got
         AssignOffset(ref at, details, side: (int) (posTrans.localPosition.x * posTrans.localScale.x));
+
+        return posTrans;
     }
 
 
@@ -215,8 +207,7 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
             case ATDetails.AT_ANCHOR.TOP_RIGHT:
                 at.TextMesh.rectTransform.anchorMax = new Vector2(1, 1);
                 at.TextMesh.rectTransform.anchorMin = new Vector2(1, 1);
-                Debug.LogFormat("Scale factor: {0}", at.TextMesh.canvas.scaleFactor);
-                //AssignOffset(ref at, details, side: 1);
+                AssignOffset(ref at, details, side: -1);
                 break;
 
             case ATDetails.AT_ANCHOR.CENTER:
@@ -233,15 +224,21 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
     {
         Camera gameCam = S_Global.Current.GetCamera();
 
+        //camera may use multiple text in multiple locations so no need to worry about having multiple of them
+        SetParent(ref at, gameCam.transform);
+
+        at.TextMesh.canvas.renderMode = RenderMode.ScreenSpaceCamera;
+    }
+
+    private void SetParent(ref AnimatedText at, Transform parentTrans)
+    {
         if (at == null)
         {
-            //camera may use multiple text in multiple locations so no need to worry about having multiple of them
-            at = InstanceAnimatedText(gameCam.transform);
+            at = InstanceAnimatedText(parentTrans);
         }
         else
         {
-            at.transform.parent = gameCam.transform;
+            at.transform.parent = parentTrans;
         }
-        at.TextMesh.canvas.renderMode = RenderMode.ScreenSpaceCamera;
     }
 }

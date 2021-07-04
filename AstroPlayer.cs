@@ -23,7 +23,7 @@ public class AstroPlayer : MonoBehaviour
 
     private const float ACCEL = 3f;
     private const float AIR_ACCEL = ACCEL / 2f;
-    private const float MAX_SPEED = 160f / 2f;
+    private const float MAX_SPEED = 180f / 2f;
     //TODO: implement max air speed
     private const float MAX_AIR_SPEED = MAX_SPEED;
     private const float GRAVITY = 180f / 2f;
