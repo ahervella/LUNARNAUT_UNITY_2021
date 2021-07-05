@@ -185,8 +185,12 @@ public class AnimatedText : MonoBehaviour
     private void FixedUpdate()
     {
         if (!followFixedCamAnchor) { return; }
-        //SetAnchorOffset();
-        textMesh.transform.position = GetFixedCamAnchorPos();//new Vector3(mahSpot.x, mahSpot.y - cachedLocalPosOffset.y / cachedLineCount, 0);
+        UpdateTextPosition();
+    }
+
+    private void UpdateTextPosition()
+    {
+        textMesh.transform.position = GetFixedCamAnchorPos();
         textMesh.transform.localPosition = new Vector3(textMesh.transform.localPosition.x, textMesh.transform.localPosition.y, 10);
         textMesh.rectTransform.anchoredPosition += new Vector2(cachedLocalPosOffset.x, cachedLocalPosOffset.y - cachedLocalPosOffset.y / cachedLineCount);
     }
@@ -202,7 +206,7 @@ public class AnimatedText : MonoBehaviour
         currSize = ATDetails.sizeDict[atd.TextSize];
         textMesh.fontSize = currSize;
         currAnimTime = ATDetails.animTimeDict[atd.AnimSpeed];
-        followFixedCamAnchor = atd.FixedSizeInCam;// && !IsAstroAnchor(atd);
+        followFixedCamAnchor = atd.FixedSizeInCam;
 
         indefDisplayTime = false;
 
@@ -218,12 +222,6 @@ public class AnimatedText : MonoBehaviour
                 indefDisplayTime = true;
                 break;
         }
-
-
-
-        //decide how to do sthis shiiiiiiiiit
-        //when to actually compensate for typing direction:
-        //TODO: restrictinos with checking camera fix button for astro, and camera ones?
 
         switch (atd.AnimDirection)
         {
@@ -275,8 +273,8 @@ public class AnimatedText : MonoBehaviour
         cachedLocalPosOffset = new Vector2(textDim.x * AnchorOffSetMultiplyer.x + trueCenterOffset, textDim.y * AnchorOffSetMultiplyer.y);
 
         cachedLineCount = textDim.y / textDim.z;
-        //adding because we set the animation direction. Should only be done once when getting new text
-        //textMesh.rectTransform.anchoredPosition += new Vector2(cachedLocalPosOffset.x, cachedLocalPosOffset.y - textDim.z);
+
+        UpdateTextPosition();
     }
 
     private Coroutine animatingCR;
