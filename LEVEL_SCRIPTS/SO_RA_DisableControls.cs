@@ -7,6 +7,6 @@ public class SO_RA_DisableControls : SO_Reaction
 {
     public override void Execute()
     {
-        S_AstroInputManager.Current.ControlsEnabled = false;
+        S_InputManager.Current.ControlsEnabled = false;
     }
 }

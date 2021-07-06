@@ -60,13 +60,6 @@ public class BasicInteractive : A_Interactive
 
     protected AnimatedText animatedText = null;
 
-    protected virtual void Awake()
-    {
-        //astroEnterAction?.OnAwake(transform);
-        //astroExitAction?.OnAwake(transform);
-        //succesfulInteractAction?.OnAwake(transform);
-        //failedInteractAction?.OnAwake(transform);
-    }
 
     //TODO: add an interact queue system in astro like the AstroText system?
     //Maybe combine them since they go hand in hand?
@@ -131,6 +124,7 @@ public class BasicInteractive : A_Interactive
     //vvv these are meant to be called by the astro player script
     public override void OnInteract()
     {
+        Debug.LogFormat("This shit was triggered: {0}", name);
         if (Interacted)
         {
             return;

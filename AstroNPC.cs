@@ -103,8 +103,13 @@ public class AstroNPC : A_Interactive
         returnToDefaultDirectionCR = null;
     }
 
-    protected override void AstroInAreaUpdate()
+    private void FixedUpdate()
     {
+        if (!AstroInArea)
+        {
+            return;
+        }
+
         FaceRight(AstroGO.transform.position.x > transform.position.x);
     }
 

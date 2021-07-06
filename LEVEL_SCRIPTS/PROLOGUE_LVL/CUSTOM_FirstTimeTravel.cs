@@ -30,7 +30,7 @@ public class CUSTOM_FirstTimeTravel : MonoBehaviour
 
     private void SO_RA_FirstTimeTravel_OnFirstTimeTravel()
     {
-        S_AstroInputManager.Current.ControlsEnabled = false;
+        S_InputManager.Current.ControlsEnabled = false;
         StartCoroutine(DelayedEffectStart(delayWholeEffect));
     }
 

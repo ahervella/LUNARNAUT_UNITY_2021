@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,15 +6,44 @@ using UnityEngine;
 public abstract class A_Interactive : MonoBehaviour
 {
     private const string ASTRO_TAG = "ASTRO";
-    private const KeyCode INTERACT_KEY = KeyCode.E;
     private bool astroInArea = false;
+    protected bool AstroInArea => astroInArea;
     public bool TimeTravel_ChangedState { get; set; } = false;
+    private bool interactButtonPressed = false;
 
     [SerializeField]
     private GameObject audio3DSource;
     public GameObject Audio3DSource => audio3DSource;
 
     protected GameObject AstroGO { get; private set; } = null;
+
+    protected virtual void Awake()
+    {
+        AstroPlayer.OnInteractInput -= AstroPlayer_OnInteractInput;
+        AstroPlayer.OnInteractInput += AstroPlayer_OnInteractInput;
+    }
+
+    private void AstroPlayer_OnInteractInput(bool inputDown)
+    {
+        if (!astroInArea)
+        {
+            interactButtonPressed = false;
+            return;
+        }
+
+        if (inputDown)
+        {
+
+            interactButtonPressed = true;
+            Debug.LogFormat("This shit was triggered hereeee: {0}", name);
+            OnInteract();
+        }
+        else
+        {
+            interactButtonPressed = false;
+            OnReleaseInteract();
+        }
+    }
 
     //USED FOR WWISE COLLIDERS WHICH ARE 3D
     private void OnTriggerEnter(Collider collision)
@@ -66,38 +94,12 @@ public abstract class A_Interactive : MonoBehaviour
         OnAstroExit(astroGO);
         S_AstroInteractiveQueue.Current.RemoveInteractive(this);
         astroInArea = false;
-        astroGO = null;
+        AstroGO = null;
 
-        //Trigger on release if we left area while holding down key
-        //TODO: will this possibly trigger two OnRealses
-        if (Input.GetKey(INTERACT_KEY) || Input.GetKeyDown(INTERACT_KEY))
+        if (interactButtonPressed)
         {
             OnReleaseInteract();
         }
-    }
-
-    protected virtual void Update()
-    {
-        if (!astroInArea)
-        {
-            return;
-        }
-
-        if (Input.GetKeyDown(INTERACT_KEY))
-        {
-            OnInteract();
-        }
-
-        if (Input.GetKeyUp(INTERACT_KEY))
-        {
-            OnReleaseInteract();
-        }
-
-        AstroInAreaUpdate();
-    }
-
-    protected virtual void AstroInAreaUpdate()
-    {
     }
 
     protected virtual ITimeTravelData ComposeNewTTD()

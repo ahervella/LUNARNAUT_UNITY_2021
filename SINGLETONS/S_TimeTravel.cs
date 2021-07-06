@@ -114,7 +114,7 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
             return;
         }
         ttInProgress = true;
-        S_AstroInputManager.Current.ControlsEnabled = false;
+        S_InputManager.Current.ControlsEnabled = false;
         InitTimeTravelFade();
     }
 
@@ -125,7 +125,7 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
 
     public void AstroCamera_FadeInComplete()
     {
-        S_AstroInputManager.Current.ControlsEnabled = ttWereControlsEnabled;
+        S_InputManager.Current.ControlsEnabled = ttWereControlsEnabled;
     }
 
     public bool InPast() => Timeline == TIME_PERIOD.PAST;

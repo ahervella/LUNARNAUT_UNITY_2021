@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 //TODO: make astro anims not react if coming from under platform
 
@@ -13,7 +15,7 @@ public class BI_MovingPlatform : BasicInteractive
 
     //TODO: disable if all dev tools off
     [SerializeField]
-    private KeyCode devToolsMoveHotKey;
+    private Key devToolsMoveHotKey;
 
     [SerializeField]
     private Transform movingPlatform;
@@ -263,11 +265,25 @@ public class BI_MovingPlatform : BasicInteractive
     private void FixedUpdate()
     {
         WPFixedUpdate();
-        if (DEVTOOLS_movePlatformHotKeyEnabled && Input.GetKeyDown(devToolsMoveHotKey))
+        CheckForDevHotKeyPressUpdate();
+    }
+
+    private void CheckForDevHotKeyPressUpdate()
+    {
+        if (!DEVTOOLS_movePlatformHotKeyEnabled)
         {
-            MovePlatform();
+            return;
+        }
+        foreach(KeyControl kc in Keyboard.current.allKeys)
+        {
+            if (kc.keyCode == devToolsMoveHotKey)
+            {
+                MovePlatform();
+                return;
+            }
         }
     }
+
 
     private void ResetAndReverseWP()
     {

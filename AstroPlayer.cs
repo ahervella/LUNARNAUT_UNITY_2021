@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 //using LunarnautShit;
 
 //Tutorial I used to implement this awesome shit:
@@ -115,8 +116,8 @@ public class AstroPlayer : MonoBehaviour
         S_DeveloperTools.Current.TimeTravelDevToolsChanged -= S_DeveloperTools_TimeTravelDevToolsChanged;
         S_DeveloperTools.Current.TimeTravelDevToolsChanged += S_DeveloperTools_TimeTravelDevToolsChanged;
 
-        S_AstroInputManager.Current.ControlsEnabledChanged -= S_AstroInputManager_ControlsEnabeldChanged;
-        S_AstroInputManager.Current.ControlsEnabledChanged += S_AstroInputManager_ControlsEnabeldChanged;
+        S_InputManager.Current.ControlsEnabledChanged -= S_InputManager_ControlsEnabeldChanged;
+        S_InputManager.Current.ControlsEnabledChanged += S_InputManager_ControlsEnabeldChanged;
 
         S_TimeTravel.Current.PlayerTimeTravelEnabledChanged -= S_TimeTravel_PlayerTimeTravelEnabled;
         S_TimeTravel.Current.PlayerTimeTravelEnabledChanged += S_TimeTravel_PlayerTimeTravelEnabled;
@@ -271,20 +272,68 @@ public class AstroPlayer : MonoBehaviour
     #region INPUT_MANAGER
 
     private bool INPUT_controlsEnabled = true;
-    private void S_AstroInputManager_ControlsEnabeldChanged()
+    private void S_InputManager_ControlsEnabeldChanged()
     {
-        INPUT_controlsEnabled = S_AstroInputManager.Current.ControlsEnabled;
+        INPUT_controlsEnabled = S_InputManager.Current.ControlsEnabled;
         if (!INPUT_controlsEnabled)
         {
-            vel = Vector2.zero;
+            horizDirectoin = 0;
+            jumping = false;
+            //vel = Vector2.zero;
+        }
+    }
+
+    public static event Action<bool> OnInteractInput = delegate { };
+
+    public void OnMoveInputUpdate(InputAction.CallbackContext val)
+    {
+        if (!INPUT_controlsEnabled)
+        {
+            return;
+        }
+        horizDirectoin = val.ReadValue<Vector2>().x;
+    }
+
+    public void OnJumpInputUpdate(InputAction.CallbackContext val)
+    {
+        if (!INPUT_controlsEnabled)
+        {
+            return;
+        }
+        jumping = val.performed && (grounded || DEVTOOLS_unlimitedJump);
+    }
+
+    public void OnTimeTravelInputUpdate(InputAction.CallbackContext val)
+    {
+        if (!INPUT_controlsEnabled || !val.performed)
+        {
+            return;
         }
 
-        lock (_inputLock)
+        if (TIME_TRAVEL_enabled)
         {
-            jumping = false;
-            leftInput_STATE = false;
-            rightInput_STATE = false;
+            if (inFuture.IsTrue())
+            {
+                goToPast.Execute();
+            }
+            else
+            {
+                goToFuture.Execute();
+            }
         }
+        else
+        {
+            Debug.Log("Player tried to time travel but time traveling not enabled.");
+        }
+    }
+
+    public void OnInteractInputUpdate(InputAction.CallbackContext val)
+    {
+        if (!INPUT_controlsEnabled)
+        {
+            return;
+        }
+        OnInteractInput(val.performed);
     }
 
     #endregion
@@ -412,6 +461,7 @@ public class AstroPlayer : MonoBehaviour
 
     #endregion
 
+    
 
     private void Start()
     {
@@ -429,17 +479,10 @@ public class AstroPlayer : MonoBehaviour
         cf.useLayerMask = true; //filter via layer mask in project settings
     }
 
-    private void Update()
-    {
-        InputUpdate();
-    }
-
     private void FixedUpdate()
     {
         //NOTE! : Time.deltaTime == Time.fixedDeltaTime when in FixedUpdate
         //(I just tested this)
-
-        InputFixedUpdate();
 
         if (grounded) { jumpTimeCounter = 0f; }
 
@@ -484,157 +527,6 @@ public class AstroPlayer : MonoBehaviour
         animController.AnimLogicFixedUpdate(grounded, jumping, vel.y < 0, (int)horizDirectoin);
     }
 
-    #region Input Management
-    private void InputUpdate()
-    {
-        if (!INPUT_controlsEnabled)
-        {
-            return;
-        }
-
-        lock (_inputLock)
-        {
-            KeyUpdate(JUMP_INPUT_KEY, readDown: true, ref jumpInput_DOWN);
-            KeyUpdate(JUMP_INPUT_KEY, readDown: false, ref jumpInput_UP);
-
-            KeyUpdate(RIGHT_INPUT_KEY, readDown: true, ref rightInput_DOWN);
-            KeyUpdate(RIGHT_INPUT_KEY, readDown: false, ref rightInput_UP);
-
-            KeyUpdate(LEFT_INPUT_KEY, readDown: true, ref leftInput_DOWN);
-            KeyUpdate(LEFT_INPUT_KEY, readDown: false, ref leftInput_UP);
-
-            KeyUpdate(TIME_TRAVEL_KEY, readDown: true, ref timeTravelInput_DOWN);
-
-        }
-
-    }
-
-    private void KeyUpdate(KeyCode[] possibleKeys, bool readDown, ref bool cachedBool)
-    {
-        if (readDown)
-        {
-            foreach (KeyCode kc in possibleKeys)
-            {
-                if (Input.GetKeyDown(kc))
-                {
-                    cachedBool = true;
-                    if (DEVTOOLS_printRawPlayerInputs)
-                    {
-                        Debug.Log("got key down for: " + kc.ToString());
-                    }
-                    return;
-                }
-            }
-        }
-        else
-        {
-            foreach (KeyCode kc in possibleKeys)
-            {
-                if (Input.GetKeyUp(kc))
-                {
-                    cachedBool = true;
-                    if (DEVTOOLS_printRawPlayerInputs)
-                    {
-                        Debug.Log("got key up for: " + kc.ToString());
-                    }
-                    return;
-                }
-            }
-        }
-    }
-    private readonly object _inputLock = new object();
-    private void InputFixedUpdate()
-    {
-        //do this here to make sure we don't skip one frame presses
-        //reset the one frame inputs to false once processed in first fixed update frame
-
-        //need to wrap in a lock so we don't have to use a lock
-        //because update could change the value of jumpInput_DOWN to true
-        //in between lines
-        lock (_inputLock)
-        {
-            bool jumpInputDown = false;
-            if (jumpInput_DOWN)
-            {
-                jumpInputDown = true;
-                jumpInput_DOWN = false;
-            }
-
-            bool jumpInputUp = false;
-            if (jumpInput_UP)
-            {
-                jumpInputUp = true;
-                jumpInput_UP = false;
-            }
-
-
-            if (rightInput_DOWN)
-            {
-                rightInput_STATE = true;
-                rightInput_DOWN = false;
-            }
-            if (rightInput_UP)
-            {
-                rightInput_STATE = false;
-                rightInput_UP = false;
-            }
-
-
-            if (leftInput_DOWN)
-            {
-                leftInput_STATE = true;
-                leftInput_DOWN = false;
-            }
-            if (leftInput_UP)
-            {
-                leftInput_STATE = false;
-                leftInput_UP = false;
-            }
-
-            //prevent from double jumping
-            if (jumpInputDown)
-            {
-                jumping = grounded || DEVTOOLS_unlimitedJump;
-            }
-            if (jumpInputUp)
-            {
-                jumping = false;
-            }
-
-            horizDirectoin = 0;
-            if (rightInput_STATE)
-            {
-                horizDirectoin++;
-            }
-            if (leftInput_STATE)
-            {
-                horizDirectoin--;
-            }
-
-            if (timeTravelInput_DOWN)
-            {
-                timeTravelInput_DOWN = false;
-
-                if (TIME_TRAVEL_enabled)
-                {
-                    if (inFuture.IsTrue())
-                    {
-                        goToPast.Execute();
-                    }
-                    else
-                    {
-                        goToFuture.Execute();
-                    }
-                }
-                else
-                {
-                    Debug.Log("Player tried to time travel but time traveling not enabled.");
-                }
-            }
-        }
-        
-    }
-#endregion
 
     private Vector2 MoveRB3Update(Vector2 velocity, float frameTime, Vector2 gravityDir, bool snap, bool stopOnSlope = true, float maxFloorAng = MIN_GROUND_DEG_ANG, float slideThreshold = SLIDE_FRIC_THRESHOLD)
     {
