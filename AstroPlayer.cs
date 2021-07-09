@@ -62,7 +62,7 @@ public class AstroPlayer : MonoBehaviour
 
     private CapsuleCollider2D shape;
 
-    private float horizDirectoin = 0;
+    private float horizDirection = 0;
     private bool jumping = false;
     private float jumpTimeCounter = 0f;
     private Vector2 vel = new Vector2(0, 0);
@@ -94,6 +94,17 @@ public class AstroPlayer : MonoBehaviour
     //able to store per frame
     private const int MAX_COLLISIONS = 16;
 
+    private void Awake()
+    {
+        S_DeveloperTools_Delegates();
+        S_InputManager_Delegates();
+        S_TimeTravel_Delegates();
+        S_TimeTravel_Awake();
+
+        SetProperTextPosScale();
+        AstroAnim.OnOrientationUpdate += AstroAnim_OnOrientationUpdate;
+    }
+
     private void OnEnable()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -105,7 +116,7 @@ public class AstroPlayer : MonoBehaviour
     /// <summary>
     /// DO NOT TOUCH THIS
     /// </summary>
-    private void Awake()
+    private void S_DeveloperTools_Delegates()
     {
         S_DeveloperTools_EnableChanged();
 
@@ -115,39 +126,6 @@ public class AstroPlayer : MonoBehaviour
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.TimeTravelDevToolsChanged -= S_DeveloperTools_TimeTravelDevToolsChanged;
         S_DeveloperTools.Current.TimeTravelDevToolsChanged += S_DeveloperTools_TimeTravelDevToolsChanged;
-
-        S_InputManager.Current.ControlsEnabledChanged -= S_InputManager_ControlsEnabeldChanged;
-        S_InputManager.Current.ControlsEnabledChanged += S_InputManager_ControlsEnabeldChanged;
-
-        S_TimeTravel.Current.PlayerTimeTravelEnabledChanged -= S_TimeTravel_PlayerTimeTravelEnabled;
-        S_TimeTravel.Current.PlayerTimeTravelEnabledChanged += S_TimeTravel_PlayerTimeTravelEnabled;
-        S_TimeTravel_PlayerTimeTravelEnabled();
-
-        S_TimeTravel.Current.ComposeAstroTTD -= S_TimeTravel_ComposeAstroTTD;
-        S_TimeTravel.Current.ComposeAstroTTD += S_TimeTravel_ComposeAstroTTD;
-
-        S_TimeTravel.Current.ParseAstroTTD -= S_TimeTravel_ParseAstroTTD;
-        S_TimeTravel.Current.ParseAstroTTD += S_TimeTravel_ParseAstroTTD;
-
-        goToFuture = new SO_RA_GoToFuture();
-        goToPast = new SO_RA_GoToPast();
-        inFuture = new SO_BA_InFuture();
-
-        if (pastStartPos == null || futureStartPos == null)
-        {
-            Debug.LogError("Astro doesn't have a start position for the past or future!");
-        }
-        else
-        {
-            pastTTD = DEVTOOLS_setTTSpawnsAtCurrPos ? new AstroTimeTravelData(transform) : new AstroTimeTravelData(pastStartPos);
-            futureTTD = DEVTOOLS_setTTSpawnsAtCurrPos ? new AstroTimeTravelData(transform) : new AstroTimeTravelData(futureStartPos);
-            astroCollider = GetComponent<CapsuleCollider2D>();
-            //shortcut to setting astro at start position
-            S_TimeTravel_ParseAstroTTD();
-        }
-
-        SetProperTextPosScale();
-        AstroAnim.OnOrientationUpdate += AstroAnim_OnOrientationUpdate;
     }
 
     /// <summary>
@@ -270,6 +248,11 @@ public class AstroPlayer : MonoBehaviour
 
 
     #region INPUT_MANAGER
+    private void S_InputManager_Delegates()
+    {
+        S_InputManager.Current.ControlsEnabledChanged -= S_InputManager_ControlsEnabeldChanged;
+        S_InputManager.Current.ControlsEnabledChanged += S_InputManager_ControlsEnabeldChanged;
+    }
 
     private bool INPUT_controlsEnabled = true;
     private void S_InputManager_ControlsEnabeldChanged()
@@ -277,9 +260,8 @@ public class AstroPlayer : MonoBehaviour
         INPUT_controlsEnabled = S_InputManager.Current.ControlsEnabled;
         if (!INPUT_controlsEnabled)
         {
-            horizDirectoin = 0;
+            horizDirection = 0;
             jumping = false;
-            //vel = Vector2.zero;
         }
     }
 
@@ -291,7 +273,8 @@ public class AstroPlayer : MonoBehaviour
         {
             return;
         }
-        horizDirectoin = val.ReadValue<Vector2>().x;
+        horizDirection = val.ReadValue<Vector2>().x;
+        Debug.LogFormat("new horz x direction: {0}", horizDirection);
     }
 
     public void OnJumpInputUpdate(InputAction.CallbackContext val)
@@ -338,8 +321,40 @@ public class AstroPlayer : MonoBehaviour
 
     #endregion
 
-
     #region TIME_TRAVEL
+
+    private void S_TimeTravel_Delegates()
+    {
+        S_TimeTravel.Current.PlayerTimeTravelEnabledChanged -= S_TimeTravel_PlayerTimeTravelEnabled;
+        S_TimeTravel.Current.PlayerTimeTravelEnabledChanged += S_TimeTravel_PlayerTimeTravelEnabled;
+        S_TimeTravel_PlayerTimeTravelEnabled();
+
+        S_TimeTravel.Current.ComposeAstroTTD -= S_TimeTravel_ComposeAstroTTD;
+        S_TimeTravel.Current.ComposeAstroTTD += S_TimeTravel_ComposeAstroTTD;
+
+        S_TimeTravel.Current.ParseAstroTTD -= S_TimeTravel_ParseAstroTTD;
+        S_TimeTravel.Current.ParseAstroTTD += S_TimeTravel_ParseAstroTTD;
+    }
+
+    private void S_TimeTravel_Awake()
+    {
+        goToFuture = new SO_RA_GoToFuture();
+        goToPast = new SO_RA_GoToPast();
+        inFuture = new SO_BA_InFuture();
+
+        if (pastStartPos == null || futureStartPos == null)
+        {
+            Debug.LogError("Astro doesn't have a start position for the past or future!");
+        }
+        else
+        {
+            pastTTD = DEVTOOLS_setTTSpawnsAtCurrPos ? new AstroTimeTravelData(transform) : new AstroTimeTravelData(pastStartPos);
+            futureTTD = DEVTOOLS_setTTSpawnsAtCurrPos ? new AstroTimeTravelData(transform) : new AstroTimeTravelData(futureStartPos);
+            astroCollider = GetComponent<CapsuleCollider2D>();
+            //shortcut to setting astro at start position
+            S_TimeTravel_ParseAstroTTD();
+        }
+    }
 
     private bool TIME_TRAVEL_enabled = false;
     private void S_TimeTravel_PlayerTimeTravelEnabled()
@@ -462,7 +477,6 @@ public class AstroPlayer : MonoBehaviour
     #endregion
 
     
-
     private void Start()
     {
         InitContactFilterSettings(cf, gameObject);
@@ -490,11 +504,11 @@ public class AstroPlayer : MonoBehaviour
         float xVel = vel.x;
 
         float accel = grounded ? ACCEL : AIR_ACCEL;
-        float dirSign = horizDirectoin * vel.x;
+        float dirSign = horizDirection * vel.x;
         float speed = onWall ? MAX_SPEED / 4 : MAX_SPEED;
         if (dirSign <= 0 || (dirSign > 0 && MAX_SPEED > vel.x))
         {
-            xVel = Mathf.Lerp(vel.x, horizDirectoin * speed, Time.deltaTime * accel);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
+            xVel = Mathf.Lerp(vel.x, horizDirection * speed, Time.deltaTime * accel);//ACCEL);//vel.x + accel * Time.fixedDeltaTime;
         }
 
 
@@ -524,7 +538,7 @@ public class AstroPlayer : MonoBehaviour
 
         vel = MoveRB3Update(vel, Time.fixedDeltaTime, Vector2.down, (jumpTimeCounter == 0));
         
-        animController.AnimLogicFixedUpdate(grounded, jumping, vel.y < 0, (int)horizDirectoin);
+        animController.AnimLogicFixedUpdate(grounded, jumping, vel.y < 0, (int)horizDirection);
     }
 
 

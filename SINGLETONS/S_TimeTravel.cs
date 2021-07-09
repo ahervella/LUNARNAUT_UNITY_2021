@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class S_TimeTravel : Singleton<S_TimeTravel>
+[CreateAssetMenu(fileName = "S_TimeTravel", menuName = "ScriptableObjects/Singletons/TimeTravel")]
+public class S_TimeTravel : SingletonScriptableObject<S_TimeTravel>
 {
     public enum TIME_PERIOD { PAST, FUTURE}
 
@@ -70,7 +71,7 @@ public class S_TimeTravel : Singleton<S_TimeTravel>
         }
     }
 
-    private void Awake()
+    protected override void OnRuntimeEnable()
     {
         S_DeveloperTools.Current.TogglePlayerEnableTimeTravelChanged -= S_DeveloperTools_TogglePlayerEnableTimeTravelChanged;
         S_DeveloperTools.Current.TogglePlayerEnableTimeTravelChanged += S_DeveloperTools_TogglePlayerEnableTimeTravelChanged;

@@ -45,7 +45,7 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
     private static T CreateSingleton()
     {
         //in case we are using an inspector singleton
-        var instances = FindObjectsOfType<T>();
+        T[] instances = FindObjectsOfType<T>();
         var count = instances.Length;
         if (count > 0)
         {
@@ -70,7 +70,7 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
         Debug.LogWarning($"[{nameof(T)}] There should never be more than one {nameof(T)} of type {typeof(T)} in the scene, but {numberOfTotalSingletonsFound} were found. The first instance found will be used, and all others will be destroyed.");
     }
 
-    private void Awake()
+    protected virtual void Awake()
     {
         lock (_lock)
         {
@@ -82,24 +82,22 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
             }
 
             CleanUpDuplicatedSingletons();
-            OnAwake();
         }
 
     }
-
-    //protected virtual void SingletonSettings() { }
-    protected virtual void OnAwake() { }
 
 
     protected static void CleanUpDuplicatedSingletons()
     {
         var instances = FindObjectsOfType<T>();
         var count = instances.Length;
+        
         if (count > 1)
         {
             PrintMultiSingletonWarningMessage(count);
-            for (var i = 1; i < instances.Length; i++)
+            for (var i = instances.Length-1; i >= 0; i--)
             {
+                Debug.LogFormat("destroying singleton dup: {0}", instances[i].name);
                 Destroy(instances[i]);
             }
         }

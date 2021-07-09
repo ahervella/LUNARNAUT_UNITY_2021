@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System;
 using UnityEditor;
 
-public class AstroAnim : MonoBehaviour
+public class AstroAnim : Pausable
 {
     private const bool PRINT_ANIM_NAMES = false;
 
@@ -103,8 +103,15 @@ public class AstroAnim : MonoBehaviour
     [SerializeField]
     private AK.Wwise.Event suitBeepSoundEvent;
 
+    protected override void OnAwake()
+    {
+        S_DeveloperTools_Delegates();
+        S_TimeTravel_Delegates();
+        S_TimeTravel_Init();
+    }
+
     #region Astro Dev Tools Integration
-    private void Awake()
+    private void S_DeveloperTools_Delegates()
     {
         S_DeveloperTools_EnableChanged();
 
@@ -112,13 +119,6 @@ public class AstroAnim : MonoBehaviour
         S_DeveloperTools.Current.EnableDevToolsChanged += S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged -= S_DeveloperTools_EnableChanged;
         S_DeveloperTools.Current.AstroPlayerDevToolsChanged += S_DeveloperTools_EnableChanged;
-
-        S_TimeTravel.Current.ParseAstroTTD -= S_TimeTravel_ParseAstroTTD;
-        S_TimeTravel.Current.ParseAstroTTD += S_TimeTravel_ParseAstroTTD;
-
-        pastFacingRight = pastStartFacingRight;
-        futureFacingRight = futureStartFacingRight;
-        FacingRight = S_TimeTravel.Current.InFuture() ? futureFacingRight : pastFacingRight;
     }
 
     private void S_DeveloperTools_EnableChanged()
@@ -152,6 +152,19 @@ public class AstroAnim : MonoBehaviour
     #endregion
 
     #region TIME_TRAVEL
+    private void S_TimeTravel_Delegates()
+    {
+
+        S_TimeTravel.Current.ParseAstroTTD -= S_TimeTravel_ParseAstroTTD;
+        S_TimeTravel.Current.ParseAstroTTD += S_TimeTravel_ParseAstroTTD;
+    }
+
+    private void S_TimeTravel_Init()
+    {
+        pastFacingRight = pastStartFacingRight;
+        futureFacingRight = futureStartFacingRight;
+        FacingRight = S_TimeTravel.Current.InFuture() ? futureFacingRight : pastFacingRight;
+    }
 
     //these are set initially in awake
     [SerializeField]
@@ -475,6 +488,11 @@ public class AstroAnim : MonoBehaviour
     //TODO: optimize by just putting in the animation frames? Is that faster?
     private void LateUpdate()
     {
+        if (S_MENUS_gamePaused)
+        {
+            return;
+        }
+
         //TODO: do we still want to keep these in the fixed update?
         //Should be fine because we already save for all animation things
         // to change end of frame? What about for getting the curr frame?

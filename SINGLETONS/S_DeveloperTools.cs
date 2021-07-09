@@ -1,8 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
-public class S_DeveloperTools : Singleton<S_DeveloperTools>
+[CreateAssetMenu(fileName = "S_DeveloperTools", menuName = "ScriptableObjects/Singletons/DeveloperTools")]
+public class S_DeveloperTools : SingletonScriptableObject<S_DeveloperTools>
 {
     [SerializeField, GetSet("EnableDevTools")]
     private bool enableDevTools = false;
@@ -123,7 +126,7 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
     [SerializeField]
     private bool enableKillKey = true;
     [SerializeField]
-    private KeyCode killKey = KeyCode.Backslash;
+    private Key killKey = Key.Backslash;
     private void Update()
     {
         if (!enableKillKey)
@@ -131,9 +134,13 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
             return;
         }
 
-        if (Input.GetKeyDown(killKey))
+        foreach (KeyControl kc in Keyboard.current.allKeys)
         {
-            KillAstro();
+            if (kc.keyCode == killKey)
+            {
+                KillAstro();
+                break;
+            }
         }
     }
 
@@ -224,4 +231,5 @@ public class S_DeveloperTools : Singleton<S_DeveloperTools>
     }
     #endregion
 
+    protected override void OnRuntimeEnable() { }
 }

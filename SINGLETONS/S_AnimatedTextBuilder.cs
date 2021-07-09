@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using static AnimatedText;
 
-public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
+[CreateAssetMenu(fileName = "S_AnimatedTextBuilder", menuName = "ScriptableObjects/Singletons/AnimatedTextBuilder")]
+public class S_AnimatedTextBuilder : SingletonScriptableObject<S_AnimatedTextBuilder>
 {
     [SerializeField]
     private AnimatedText animatedTextPrefab;
@@ -157,13 +158,6 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
     }
 
 
-
-
-    //TODO: move code to move all of local text positioning when animation starts so we know how much text we are dealing with.
-
-
-
-
     private void SetCameraAnchor(ref AnimatedText at, ATDetails details)
     {
         SetCameraAsParent(ref at);
@@ -241,4 +235,6 @@ public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
             at.transform.parent = parentTrans;
         }
     }
+
+    protected override void OnRuntimeEnable() { }
 }

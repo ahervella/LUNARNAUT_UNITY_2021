@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System;
 using UnityEngine;
+using UnityEditor;
 
-public class S_Global : Singleton<S_Global>
+[CreateAssetMenu(fileName = "S_Global", menuName = "ScriptableObjects/Singletons/Global")]
+public class S_Global : SingletonScriptableObject<S_Global>
 {
     private AstroPlayer astroPlayer;
     public AstroPlayer GetAstroPlayer()
@@ -96,9 +98,8 @@ public class S_Global : Singleton<S_Global>
     private static event System.Action ResetVarContainersToDefaultValues = delegate { };
     private static event System.Action EnableInspectorLevelVariablesChanged = delegate { };
 
-    private void Awake()
+    protected override void OnRuntimeEnable()
     {
-        GetAstroPlayer();
         S_DeveloperTools.Current.EnableInspectorLevelVariablesChanged -= S_DeveloperTools_EnableInspectorLevelVariablesChanged;
         S_DeveloperTools.Current.EnableInspectorLevelVariablesChanged += S_DeveloperTools_EnableInspectorLevelVariablesChanged;
 
