@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "S_AstroInteractiveQueue", menuName = "ScriptableObjects/Singletons/AstroInteractiveQueue")]
-public class S_AstroInteractiveQueue : SingletonScriptableObject<S_AstroInteractiveQueue>
+public class S_AstroInteractiveQueue : Singleton<S_AstroInteractiveQueue>
 {
     public enum TEXT_ORIENTATION { LEFT, RIGHT, ASTRO_FRONT, ASTRO_BEHIND, CUSTOM }
 
@@ -84,9 +84,5 @@ public class S_AstroInteractiveQueue : SingletonScriptableObject<S_AstroInteract
         }
         removingCR = null;
         yield break;
-    }
-
-    protected override void OnRuntimeEnable()
-    {
     }
 }

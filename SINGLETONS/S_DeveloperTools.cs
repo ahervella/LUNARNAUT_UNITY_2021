@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
 [CreateAssetMenu(fileName = "S_DeveloperTools", menuName = "ScriptableObjects/Singletons/DeveloperTools")]
-public class S_DeveloperTools : SingletonScriptableObject<S_DeveloperTools>
+public class S_DeveloperTools : Singleton<S_DeveloperTools>
 {
     [SerializeField, GetSet("EnableDevTools")]
     private bool enableDevTools = false;
@@ -230,6 +230,4 @@ public class S_DeveloperTools : SingletonScriptableObject<S_DeveloperTools>
         }
     }
     #endregion
-
-    protected override void OnRuntimeEnable() { }
 }

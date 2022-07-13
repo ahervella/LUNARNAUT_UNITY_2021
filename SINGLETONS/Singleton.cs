@@ -11,17 +11,19 @@ using UnityEngine;
 
 public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
 {
-    private static readonly object _lock = new object();
+    [SerializeField]
+    protected bool persistent = true;
 
-    private static bool _threadSafe = true;
-    private bool _persistent = true;
+    protected static bool threadSafe = true;
+
+    private static readonly object _lock = new object();
 
     private static T _current;
     public static T Current
     {
         get
         {
-            if (_threadSafe)
+            if (threadSafe)
             {
                 lock (_lock)
                 {
@@ -30,6 +32,31 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
             }
 
             return GetSingleton();
+        }
+    }
+
+    //TODO: make a more robust solution that returns this version when
+    //changing scenes or closing player? Or different calls to things when
+    //this is happening vs being normally destroyed?
+
+    /// <summary>
+    /// Used to get the current when calling the singleton from any OnDestroy
+    /// in case the singleton was already destroyed
+    /// which only happens when stopping the game or changing scenes
+    /// </summary>
+    public static T OnDestroyCurrent
+    {
+        get
+        {
+            if (threadSafe)
+            {
+                lock (_lock)
+                {
+                    return _current;
+                }
+            }
+
+            return _current;
         }
     }
 
@@ -44,62 +71,80 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
 
     private static T CreateSingleton()
     {
-        //in case we are using an inspector singleton
-        T[] instances = FindObjectsOfType<T>();
-        var count = instances.Length;
-        if (count > 0)
+        if (FindAndDeleteSingletonDups())
         {
-            for (int i = 1; i < count; i++)
-            {
-                if (i == 1)
-                {
-                    PrintMultiSingletonWarningMessage(count);
-                }
-                Destroy(instances[i]);
-            }
-            return instances[0];
+            //should only be one left
+            return FindObjectOfType<T>();
         }
 
+        //If none in the scene, make one now
+        Debug.Log($"No Monobehavior Singleton found for type: {typeof(T).Name} in the scene! Creating one...");
         var ownerObject = new GameObject($"{typeof(T).Name} (runtime singleton)");
         var instance = ownerObject.AddComponent<T>();
         return instance;
     }
 
-    private static void PrintMultiSingletonWarningMessage(int numberOfTotalSingletonsFound)
+    /// <summary>
+    /// Finds and deletes duplicate singletons
+    /// </summary>
+    /// <returns>Whether there is already a singleton available</returns>
+    private static bool FindAndDeleteSingletonDups()
     {
-        Debug.LogWarning($"[{nameof(T)}] There should never be more than one {nameof(T)} of type {typeof(T)} in the scene, but {numberOfTotalSingletonsFound} were found. The first instance found will be used, and all others will be destroyed.");
+        //First find all singletons that may be in the scene
+        T[] instances = FindObjectsOfType<T>();
+        int count = instances.Length;
+        if (count > 1)
+        {
+            //delete others that shouldn't be there
+            for (int i = 0; i < count; i++)
+            {
+                Debug.Log("Found instance: " + typeof(T).Name + ", name: " + instances[i].name);
+
+                if (instances[i] == _current)
+                {
+                    continue;
+                }
+
+                DeleteSingletonDuplicate(instances[i]);
+            }
+            return true;
+        }
+        return count == 1;
     }
 
-    protected virtual void Awake()
+    private static void DeleteSingletonDuplicate(T instance)
+    {
+        Debug.LogWarning($"[{nameof(T)}] There should not be more than one singleton of each type in the scene." +
+                    $"Deleting duplicate singleton of type {typeof(T).Name}: {instance.name}");
+        Destroy(instance.gameObject);
+    }
+    protected void Awake()
     {
         lock (_lock)
         {
-            //SingletonSettings();
+            //Debug.Log($"Awake singleton: {name}, ID: {GetInstanceID()}");
+            FindAndDeleteSingletonDups();
 
-            if (_persistent)
+            //Even if we clean up and destroy dups, won't happen till end of
+            //frame, so do this
+            if (this != Current) { return; }
+
+            //In case we reach here before awake of other objects that reference it during awake,
+            //creates singleton now instead of later,
+            //makes sure we delete duplicates
+            GetSingleton();
+
+            //only one will get here because duplicates will be deleted in GetSingleton
+            if (persistent)
             {
                 DontDestroyOnLoad(gameObject);
             }
 
-            CleanUpDuplicatedSingletons();
+
+            OnAwake();
         }
 
     }
 
-
-    protected static void CleanUpDuplicatedSingletons()
-    {
-        var instances = FindObjectsOfType<T>();
-        var count = instances.Length;
-        
-        if (count > 1)
-        {
-            PrintMultiSingletonWarningMessage(count);
-            for (var i = instances.Length-1; i >= 0; i--)
-            {
-                Debug.LogFormat("destroying singleton dup: {0}", instances[i].name);
-                Destroy(instances[i]);
-            }
-        }
-    }
+    protected virtual void OnAwake() { }
 }

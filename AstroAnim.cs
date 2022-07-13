@@ -6,6 +6,9 @@ using UnityEditor;
 
 public class AstroAnim : Pausable
 {
+    [SerializeField]
+    private SO_AstroAnimSettings settings = null;
+
     private const bool PRINT_ANIM_NAMES = false;
 
     const string ANIMS_PATH = "Assets/ANIMATION/ASTRO/";
@@ -15,7 +18,7 @@ public class AstroAnim : Pausable
     private Animator anim;
     private AnimatorOverrideController animOC;
     private string animIndex;
-    private Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>> animDict = new Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>>();
+    //private Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>> animDict = new Dictionary<SUIT, Dictionary<PLAYER_STATE, AnimationClip>>();
 
     private Dictionary<PLAYER_STATE, int[]> footstepHeelSoundDict = new Dictionary<PLAYER_STATE, int[]>()
     {
@@ -38,24 +41,6 @@ public class AstroAnim : Pausable
     };
 
     int lastFramedPlayed;
-
-    [Serializable]
-    private class SuitPlayerStateEntry
-    {
-        [SerializeField]
-        public SUIT suit;
-        [SerializeField]
-        public List<PlayerStateEntry> pse;
-    }
-
-    [Serializable]
-    private class PlayerStateEntry
-    {
-        [SerializeField]
-        public PLAYER_STATE ps;
-        [SerializeField]
-        public AnimationClip ac;
-    }
 
     private SUIT currSuit = SUIT.GGG;
     private bool blinkToggle = true;
@@ -108,6 +93,9 @@ public class AstroAnim : Pausable
         S_DeveloperTools_Delegates();
         S_TimeTravel_Delegates();
         S_TimeTravel_Init();
+
+        //TODO (from 2022): AstroColorChanger doesn't seem to be working properly for now so
+        //I made an astro anim settings, connected it to the blink method
     }
 
     #region Astro Dev Tools Integration
@@ -198,35 +186,8 @@ public class AstroAnim : Pausable
         anim.runtimeAnimatorController = animOC;
         animIndex = animOC.animationClips[0].name;
 
-        animDict.Clear();
-        foreach (SUIT suit in (SUIT[])Enum.GetValues(typeof(SUIT)))
-        {
-            //string suitString = suit.ToString();
-            Dictionary<PLAYER_STATE, AnimationClip> suitEntry = new Dictionary<PLAYER_STATE, AnimationClip>();
-
-            foreach (PLAYER_STATE ps in (PLAYER_STATE[])Enum.GetValues(typeof(PLAYER_STATE)))
-            {
-                if (ps == PLAYER_STATE.DEATH)
-                {
-                    if (suit == SUIT.RRR)
-                    {
-                        string deathAnimPath = ANIMS_PATH + "/ASTRO_DEATH.anim";
-                        suitEntry.Add(ps, (AnimationClip)AssetDatabase.LoadAssetAtPath(deathAnimPath, typeof(AnimationClip)));
-                    }
-
-                    continue;
-                }
-
-                string psString = ps.ToString();//nameof(ps);
-                string path = ANIMS_PATH + "ACC/ACC_" + psString + ".anim";//suitString + "/ASTRO_" + suitString + "_" + psString + ".anim";
-
-                suitEntry.Add(ps, (AnimationClip)AssetDatabase.LoadAssetAtPath(path, typeof(AnimationClip)));
-            }
-
-            animDict.Add(suit, suitEntry);
-        }
-
-        astroHealth = AstroPlayer.MAX_HEALTH;
+        astroHealth = 3;//AstroPlayer.MAX_HEALTH;
+        SuitUpdate();
         AstroPlayer.HealthUpdated += AstroPlayer_HealthUpdated;
         blinkCR = StartCoroutine(BlinkLoop());
     }
@@ -319,8 +280,7 @@ public class AstroAnim : Pausable
         }
 
         blinkToggle = !blinkToggle;
-        SuitChanged(currSuit);
-        //SwitchAnimSuit();
+        SwitchAnimSuit();
 
         blinkCR = StartCoroutine(BlinkLoop());
     }
@@ -354,7 +314,7 @@ public class AstroAnim : Pausable
                 return;
 
             case PLAYER_STATE.RUN:
-                int currFrame = GetCurrFrame(animDict[currSuit][PLAYER_STATE.RUN], anim);
+                int currFrame = GetCurrFrame(currSuit, PLAYER_STATE.RUN, anim);
                 if (currFrame > 40 || (currFrame > 0 && currFrame < 20))
                 {
                     SwitchAnimState(PLAYER_STATE.END1);
@@ -504,7 +464,7 @@ public class AstroAnim : Pausable
     private void UpdatePlayFootstepSound()
     {
 
-        int currFrame = GetCurrFrame(animDict[currSuit][currState], anim);
+        int currFrame = GetCurrFrame(currSuit, currState, anim);
         //Debug.LogFormat("The current Astro frame: {0}", currFrame);
 
         if (lastFramedPlayed == currFrame)
@@ -629,7 +589,7 @@ public class AstroAnim : Pausable
         {
             return;
         }
-        AnimationClip ac = animDict[currSuit][currState];
+        AnimationClip ac = settings.GetAstroAnim(currSuit, currState);
         switchAnimCR =  StartCoroutine(SwitchAnim(currState, -1, true, ac, true));
 
     }
@@ -645,7 +605,7 @@ public class AstroAnim : Pausable
         if (!isSuitUpdate)
         {
             OnAnimationStarted(state);
-            ac = animDict[currSuit][state];
+            ac = settings.GetAstroAnim(currSuit, state);
         }
         
         int currHashState = anim.GetCurrentAnimatorStateInfo(0).fullPathHash;
@@ -663,8 +623,9 @@ public class AstroAnim : Pausable
 
     //frame utilities
 
-    private int GetCurrFrame(AnimationClip animClip, Animator animator)
+    private int GetCurrFrame(SUIT suit, PLAYER_STATE state, Animator animator)
     {
+        AnimationClip animClip = settings.GetAstroAnim(suit, state);
         //modulos b/c integer part of nubmer represents number of loops, float percent of loop
         float normTime = animator.GetCurrentAnimatorStateInfo(0).normalizedTime % 1;
         float animLength = animClip.length;

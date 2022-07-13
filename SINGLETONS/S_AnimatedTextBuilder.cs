@@ -4,7 +4,7 @@ using UnityEngine;
 using static AnimatedText;
 
 [CreateAssetMenu(fileName = "S_AnimatedTextBuilder", menuName = "ScriptableObjects/Singletons/AnimatedTextBuilder")]
-public class S_AnimatedTextBuilder : SingletonScriptableObject<S_AnimatedTextBuilder>
+public class S_AnimatedTextBuilder : Singleton<S_AnimatedTextBuilder>
 {
     [SerializeField]
     private AnimatedText animatedTextPrefab;
@@ -235,6 +235,4 @@ public class S_AnimatedTextBuilder : SingletonScriptableObject<S_AnimatedTextBui
             at.transform.parent = parentTrans;
         }
     }
-
-    protected override void OnRuntimeEnable() { }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -11,7 +10,7 @@ using Object = UnityEngine.Object;
 //https://answers.unity.com/questions/242794/inspector-field-for-scene-asset.html
 
 [CreateAssetMenu(fileName = "S_Menus", menuName = "ScriptableObjects/Singletons/Menus")]
-public class S_Menus : SingletonScriptableObject<S_Menus>
+public class S_Menus : Singleton<S_Menus>
 {
     public enum GAME_SCENE { MAIN_MENU, DEMO_2021, PAUSE_MENU }
 
@@ -44,11 +43,13 @@ public class S_Menus : SingletonScriptableObject<S_Menus>
     //add main menu in conjunction with developer tools
     //also add main menu script navigation
 
-    protected override void OnRuntimeEnable()
+    protected override void OnAwake()
     {
-        foreach ( EditorBuildSettingsScene sc in EditorBuildSettings.scenes)
+        int count = SceneManager.sceneCountInBuildSettings;
+        for (int i = 0; i < count; i++)
         {
-            if (sc.path.Contains(pauseMenuScene.name))
+            string sc = System.IO.Path.GetFileNameWithoutExtension(SceneUtility.GetScenePathByBuildIndex( i ));
+            if (sc.Contains(pauseMenuScene.name))
             {
                 return;
             }

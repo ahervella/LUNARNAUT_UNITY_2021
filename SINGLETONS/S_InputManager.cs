@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "S_InputManager", menuName = "ScriptableObjects/Singletons/InputManager")]
-public class S_InputManager : SingletonScriptableObject<S_InputManager>
+public class S_InputManager : Singleton<S_InputManager>
 {
     private bool controlsEnabled = true;
     public event System.Action ControlsEnabledChanged = delegate { };
@@ -22,6 +22,4 @@ public class S_InputManager : SingletonScriptableObject<S_InputManager>
             }
         }
     }
-
-    protected override void OnRuntimeEnable() { }
 }

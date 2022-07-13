@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEditor;
 
 [CreateAssetMenu(fileName = "S_Global", menuName = "ScriptableObjects/Singletons/Global")]
-public class S_Global : SingletonScriptableObject<S_Global>
+public class S_Global : Singleton<S_Global>
 {
     private AstroPlayer astroPlayer;
     public AstroPlayer GetAstroPlayer()
@@ -98,7 +98,7 @@ public class S_Global : SingletonScriptableObject<S_Global>
     private static event System.Action ResetVarContainersToDefaultValues = delegate { };
     private static event System.Action EnableInspectorLevelVariablesChanged = delegate { };
 
-    protected override void OnRuntimeEnable()
+    protected override void OnAwake()
     {
         S_DeveloperTools.Current.EnableInspectorLevelVariablesChanged -= S_DeveloperTools_EnableInspectorLevelVariablesChanged;
         S_DeveloperTools.Current.EnableInspectorLevelVariablesChanged += S_DeveloperTools_EnableInspectorLevelVariablesChanged;
