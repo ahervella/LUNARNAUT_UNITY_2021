@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System;
-using UnityEditor;
 
 public class AstroAnim : Pausable
 {
@@ -645,5 +644,13 @@ public class AstroAnim : Pausable
         float animFrameRate = animClip.frameRate;
         //Minus 1 so that frame 1 lets start at time 0
         return (frame-1) / (animLength * animFrameRate);
+    }
+
+    private void OnDestroy()
+    {
+        OnAnimationStarted = delegate { };
+        OnAnimationEnded = delegate { };
+        OnOrientationUpdate = delegate { };
+        SuitChanged = delegate { };
     }
 }

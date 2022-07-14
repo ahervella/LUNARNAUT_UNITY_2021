@@ -697,62 +697,10 @@ public class AstroPlayer : MonoBehaviour
         jumpTimeCounter = 0f;
     }
 
-    private void exitedGround()
+    private void exitedGround(){}
+    
+    private void OnDestroy()
     {
+        HealthUpdated = delegate{};
     }
-
-
-    private void OnCollisionEnter2D(Collision2D col)
-    {
-        //Debug.Log("touching!");
-        //Debug.Log(col);
-    }
-
-    private void processHazards()
-    {
-
-    }
-
-
-    private void processInteractInput()
-    {
-
-    }
-
-    private void processFlashLightInput()
-    {
-
-    }
-
-    private void processMenuInput()
-    {
-
-    }
-
-    private void move()
-    {
-
-    }
-
-    private void moveJump()
-    {
-
-    }
-
-    private void moveCameraAndInteract()
-    {
-
-    }
-
-    private void moveMovableObjects()
-    {
-
-    }
-
-    private void retrictFromRope()
-    {
-
-    }
-
-
 }

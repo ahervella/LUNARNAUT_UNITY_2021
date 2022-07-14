@@ -20,9 +20,6 @@ public class S_Menus : Singleton<S_Menus>
     private bool pauseToggle = false;
 
     [SerializeField]
-    private Object pauseMenuScene;
-
-    [SerializeField]
     private List<GameSceneWrapper> sceneDict = new List<GameSceneWrapper>();
 
     [Serializable]
@@ -32,12 +29,28 @@ public class S_Menus : Singleton<S_Menus>
         private GAME_SCENE gameScene;
         public GAME_SCENE GameScene => gameScene;
         [SerializeField]
-        private Object sceneObject;
-        public Object SceneObject => sceneObject;
+        private string sceneName;
+        public string SceneName => sceneName;
         [SerializeField]
         private LoadSceneMode sceneType = LoadSceneMode.Single;
         public LoadSceneMode SceneType => sceneType;
     }
+
+    private string GetSceneName(GAME_SCENE gameScene)
+    {
+        foreach(GameSceneWrapper gsw in sceneDict)
+        {
+            if (gsw.GameScene == gameScene)
+            {
+                return gsw.SceneName;
+            }
+        }
+
+        Debug.LogError("Couldn't find scene name for scene: " + gameScene);
+        return string.Empty;
+    }
+
+    private string pauseSceneName => GetSceneName(GAME_SCENE.PAUSE_MENU);
 
     //add pause menu navigation (make it's own class after base classing a menu script)
     //add main menu in conjunction with developer tools
@@ -49,13 +62,13 @@ public class S_Menus : Singleton<S_Menus>
         for (int i = 0; i < count; i++)
         {
             string sc = System.IO.Path.GetFileNameWithoutExtension(SceneUtility.GetScenePathByBuildIndex( i ));
-            if (sc.Contains(pauseMenuScene.name))
+            if (sc.Contains(pauseSceneName))
             {
                 return;
             }
         }
 
-        Debug.LogErrorFormat("The pause menu scene '{0}' you tried to use with the Menu Singleton is not in the build settings list!", pauseMenuScene.name);
+        Debug.LogErrorFormat("The pause menu scene '{0}' you tried to use with the Menu Singleton is not in the build settings list!", pauseSceneName);
     }
 
     public void TogglePauseMenu()
@@ -64,14 +77,14 @@ public class S_Menus : Singleton<S_Menus>
         {
             Time.timeScale = 0;
             PauseToggled(true);
-            SceneManager.LoadSceneAsync(pauseMenuScene.name, LoadSceneMode.Additive);
+            SceneManager.LoadSceneAsync(pauseSceneName, LoadSceneMode.Additive);
         }
         else
         {
 
             Time.timeScale = 1;
             PauseToggled(false);
-            SceneManager.UnloadSceneAsync(pauseMenuScene.name);
+            SceneManager.UnloadSceneAsync(pauseSceneName);
         }
 
         pauseToggle = !pauseToggle;
@@ -83,7 +96,7 @@ public class S_Menus : Singleton<S_Menus>
         {
             if (gsw.GameScene == gs)
             {
-                StartCoroutine(LoadGameSceneAsycn(gsw.SceneObject.name, gsw.SceneType));
+                StartCoroutine(LoadGameSceneAsycn(GetSceneName(gs), gsw.SceneType));
                 return;
             }
         }
@@ -102,6 +115,12 @@ public class S_Menus : Singleton<S_Menus>
             Debug.LogFormat("Level unloading progress: {0}%", progress * 100f);
             yield return null;
         }*/
+
+        if (sceneType == LoadSceneMode.Single)
+        {
+            ClearDelegateSubscribers();
+        }
+
         Time.timeScale = 0;
 
         AsyncOperation levelLoadingOp = SceneManager.LoadSceneAsync(sceneName, sceneType);
@@ -114,6 +133,13 @@ public class S_Menus : Singleton<S_Menus>
             yield return null;
         }
         Time.timeScale = 1;
+    }
+
+    private void ClearDelegateSubscribers()
+    {
+        PauseToggled = delegate { };
+        ResetLevel = delegate { };
+        ReturnToMainMenu = delegate { };
     }
 
     public void ReloadCurrentScene()
